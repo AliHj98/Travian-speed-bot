@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(source venv/bin/activate)",
+      "Bash(pip install:*)",
+      "Bash(python bot.py:*)",
+      "Bash(python:*)",
+      "Bash(export DISPLAY=:1)",
+      "Bash(ls:*)",
+      "Bash(chmod:*)",
+      "Bash(sudo apt-get update:*)",
+      "Bash(sudo apt-get:*)",
+      "Bash(tesseract:*)"
+    ]
+  }
+}

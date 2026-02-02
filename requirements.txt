@@ -1,0 +1,10 @@
+selenium>=4.16.0
+webdriver-manager>=4.0.1
+python-dotenv>=1.0.0
+requests>=2.31.0
+beautifulsoup4>=4.12.2
+anthropic>=0.39.0
+pydantic>=2.5.3
+schedule>=1.2.1
+pytesseract>=0.3.10
+Pillow>=10.0.0
