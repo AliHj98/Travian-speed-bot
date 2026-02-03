@@ -1,0 +1,1247 @@
+{
+  "1": {
+    "name": "1",
+    "scanned_at": "2026-02-03 01:38:51",
+    "resource_fields": {
+      "1": {
+        "slot": 1,
+        "name": "Woodcutter",
+        "level": 20,
+        "gid": null
+      },
+      "2": {
+        "slot": 2,
+        "name": "Cropland",
+        "level": 20,
+        "gid": null
+      },
+      "3": {
+        "slot": 3,
+        "name": "Woodcutter",
+        "level": 19,
+        "gid": null
+      },
+      "4": {
+        "slot": 4,
+        "name": "Iron Mine",
+        "level": 20,
+        "gid": null
+      },
+      "5": {
+        "slot": 5,
+        "name": "Clay Pit",
+        "level": 18,
+        "gid": null
+      },
+      "6": {
+        "slot": 6,
+        "name": "Clay Pit",
+        "level": 20,
+        "gid": null
+      },
+      "7": {
+        "slot": 7,
+        "name": "Iron Mine",
+        "level": 19,
+        "gid": null
+      },
+      "8": {
+        "slot": 8,
+        "name": "Cropland",
+        "level": 18,
+        "gid": null
+      },
+      "9": {
+        "slot": 9,
+        "name": "Cropland",
+        "level": 17,
+        "gid": null
+      },
+      "10": {
+        "slot": 10,
+        "name": "Iron Mine",
+        "level": 18,
+        "gid": null
+      },
+      "11": {
+        "slot": 11,
+        "name": "Iron Mine",
+        "level": 19,
+        "gid": null
+      },
+      "12": {
+        "slot": 12,
+        "name": "Cropland",
+        "level": 18,
+        "gid": null
+      },
+      "13": {
+        "slot": 13,
+        "name": "Cropland",
+        "level": 16,
+        "gid": null
+      },
+      "14": {
+        "slot": 14,
+        "name": "Woodcutter",
+        "level": 13,
+        "gid": null
+      },
+      "15": {
+        "slot": 15,
+        "name": "Cropland",
+        "level": 15,
+        "gid": null
+      },
+      "16": {
+        "slot": 16,
+        "name": "Clay Pit",
+        "level": 17,
+        "gid": null
+      },
+      "17": {
+        "slot": 17,
+        "name": "Woodcutter",
+        "level": 16,
+        "gid": null
+      },
+      "18": {
+        "slot": 18,
+        "name": "Clay Pit",
+        "level": 15,
+        "gid": null
+      }
+    },
+    "buildings": {
+      "19": {
+        "slot": 19,
+        "name": "Market",
+        "level": 20,
+        "gid": null
+      },
+      "20": {
+        "slot": 20,
+        "name": "Cranny",
+        "level": 10,
+        "gid": null
+      },
+      "21": {
+        "slot": 21,
+        "name": "Embassy",
+        "level": 20,
+        "gid": null
+      },
+      "22": {
+        "slot": 22,
+        "name": "Heromansion",
+        "level": 20,
+        "gid": null
+      },
+      "23": {
+        "slot": 23,
+        "name": "Workshop",
+        "level": 1,
+        "gid": null
+      },
+      "24": {
+        "slot": 24,
+        "name": "Residence",
+        "level": 20,
+        "gid": null
+      },
+      "25": {
+        "slot": 25,
+        "name": "Tournament Square",
+        "level": 1,
+        "gid": null
+      },
+      "26": {
+        "slot": 26,
+        "name": "Main Building",
+        "level": 20,
+        "gid": null
+      },
+      "27": {
+        "slot": 27,
+        "name": "Smithy",
+        "level": 20,
+        "gid": null
+      },
+      "28": {
+        "slot": 28,
+        "name": "Academy",
+        "level": 20,
+        "gid": null
+      },
+      "29": {
+        "slot": 29,
+        "name": "Bakery",
+        "level": 1,
+        "gid": null
+      },
+      "30": {
+        "slot": 30,
+        "name": "Granary",
+        "level": 20,
+        "gid": null
+      },
+      "31": {
+        "slot": 31,
+        "name": "Warehouse",
+        "level": 20,
+        "gid": null
+      },
+      "32": {
+        "slot": 32,
+        "name": "Barracks",
+        "level": 20,
+        "gid": null
+      },
+      "33": {
+        "slot": 33,
+        "name": "Horse Drinking Trough",
+        "level": 1,
+        "gid": null
+      },
+      "34": {
+        "slot": 34,
+        "name": "Brickyard",
+        "level": 5,
+        "gid": null
+      },
+      "35": {
+        "slot": 35,
+        "name": "Ironfoundry",
+        "level": 5,
+        "gid": null
+      },
+      "36": {
+        "slot": 36,
+        "name": "Stable",
+        "level": 20,
+        "gid": null
+      },
+      "37": {
+        "slot": 37,
+        "name": "Sawmill",
+        "level": 5,
+        "gid": null
+      },
+      "38": {
+        "slot": 38,
+        "name": "Grainmill",
+        "level": 5,
+        "gid": null
+      },
+      "39": {
+        "slot": 39,
+        "name": "Rallypoint",
+        "level": 20,
+        "gid": null
+      },
+      "40": {
+        "slot": 40,
+        "name": "City Wall",
+        "level": 20,
+        "gid": null
+      }
+    },
+    "building_types": {}
+  },
+  "3": {
+    "name": "3",
+    "scanned_at": "2026-02-03 02:14:23",
+    "resource_fields": {
+      "1": {
+        "slot": 1,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "2": {
+        "slot": 2,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "3": {
+        "slot": 3,
+        "name": "Woodcutter",
+        "level": 10,
+        "gid": null
+      },
+      "4": {
+        "slot": 4,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "5": {
+        "slot": 5,
+        "name": "Clay Pit",
+        "level": 10,
+        "gid": null
+      },
+      "6": {
+        "slot": 6,
+        "name": "Clay Pit",
+        "level": 10,
+        "gid": null
+      },
+      "7": {
+        "slot": 7,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "8": {
+        "slot": 8,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "9": {
+        "slot": 9,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "10": {
+        "slot": 10,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "11": {
+        "slot": 11,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "12": {
+        "slot": 12,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "13": {
+        "slot": 13,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "14": {
+        "slot": 14,
+        "name": "Woodcutter",
+        "level": 10,
+        "gid": null
+      },
+      "15": {
+        "slot": 15,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "16": {
+        "slot": 16,
+        "name": "Clay Pit",
+        "level": 10,
+        "gid": null
+      },
+      "17": {
+        "slot": 17,
+        "name": "Woodcutter",
+        "level": 10,
+        "gid": null
+      },
+      "18": {
+        "slot": 18,
+        "name": "Clay Pit",
+        "level": 10,
+        "gid": null
+      }
+    },
+    "buildings": {
+      "19": {
+        "slot": 19,
+        "name": "Market",
+        "level": 2,
+        "gid": null
+      },
+      "20": {
+        "slot": 20,
+        "name": "Cranny",
+        "level": 2,
+        "gid": null
+      },
+      "21": {
+        "slot": 21,
+        "name": "Heromansion",
+        "level": 2,
+        "gid": null
+      },
+      "22": {
+        "slot": 22,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "23": {
+        "slot": 23,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "24": {
+        "slot": 24,
+        "name": "Residence",
+        "level": 2,
+        "gid": null
+      },
+      "25": {
+        "slot": 25,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "26": {
+        "slot": 26,
+        "name": "Main Building",
+        "level": 20,
+        "gid": null
+      },
+      "27": {
+        "slot": 27,
+        "name": "Treasury",
+        "level": 2,
+        "gid": null
+      },
+      "28": {
+        "slot": 28,
+        "name": "Academy",
+        "level": 2,
+        "gid": null
+      },
+      "29": {
+        "slot": 29,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "30": {
+        "slot": 30,
+        "name": "Warehouse",
+        "level": 3,
+        "gid": null
+      },
+      "31": {
+        "slot": 31,
+        "name": "Granary",
+        "level": 3,
+        "gid": null
+      },
+      "32": {
+        "slot": 32,
+        "name": "Barracks",
+        "level": 4,
+        "gid": null
+      },
+      "33": {
+        "slot": 33,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "34": {
+        "slot": 34,
+        "name": "Grainmill",
+        "level": 2,
+        "gid": null
+      },
+      "35": {
+        "slot": 35,
+        "name": "Sawmill",
+        "level": 2,
+        "gid": null
+      },
+      "36": {
+        "slot": 36,
+        "name": "Smithy",
+        "level": 2,
+        "gid": null
+      },
+      "37": {
+        "slot": 37,
+        "name": "Brickyard",
+        "level": 2,
+        "gid": null
+      },
+      "38": {
+        "slot": 38,
+        "name": "Ironfoundry",
+        "level": 2,
+        "gid": null
+      },
+      "39": {
+        "slot": 39,
+        "name": "Rallypoint",
+        "level": 5,
+        "gid": null
+      },
+      "40": {
+        "slot": 40,
+        "name": "City Wall",
+        "level": 2,
+        "gid": null
+      }
+    },
+    "building_types": {}
+  },
+  "5": {
+    "name": "5",
+    "scanned_at": "2026-02-03 02:35:18",
+    "resource_fields": {
+      "1": {
+        "slot": 1,
+        "name": "Woodcutter",
+        "level": 0,
+        "gid": null
+      },
+      "2": {
+        "slot": 2,
+        "name": "Cropland",
+        "level": 0,
+        "gid": null
+      },
+      "3": {
+        "slot": 3,
+        "name": "Woodcutter",
+        "level": 0,
+        "gid": null
+      },
+      "4": {
+        "slot": 4,
+        "name": "Iron Mine",
+        "level": 0,
+        "gid": null
+      },
+      "5": {
+        "slot": 5,
+        "name": "Clay Pit",
+        "level": 0,
+        "gid": null
+      },
+      "6": {
+        "slot": 6,
+        "name": "Clay Pit",
+        "level": 0,
+        "gid": null
+      },
+      "7": {
+        "slot": 7,
+        "name": "Iron Mine",
+        "level": 0,
+        "gid": null
+      },
+      "8": {
+        "slot": 8,
+        "name": "Cropland",
+        "level": 0,
+        "gid": null
+      },
+      "9": {
+        "slot": 9,
+        "name": "Cropland",
+        "level": 0,
+        "gid": null
+      },
+      "10": {
+        "slot": 10,
+        "name": "Iron Mine",
+        "level": 0,
+        "gid": null
+      },
+      "11": {
+        "slot": 11,
+        "name": "Iron Mine",
+        "level": 0,
+        "gid": null
+      },
+      "12": {
+        "slot": 12,
+        "name": "Cropland",
+        "level": 0,
+        "gid": null
+      },
+      "13": {
+        "slot": 13,
+        "name": "Cropland",
+        "level": 0,
+        "gid": null
+      },
+      "14": {
+        "slot": 14,
+        "name": "Woodcutter",
+        "level": 0,
+        "gid": null
+      },
+      "15": {
+        "slot": 15,
+        "name": "Cropland",
+        "level": 0,
+        "gid": null
+      },
+      "16": {
+        "slot": 16,
+        "name": "Clay Pit",
+        "level": 0,
+        "gid": null
+      },
+      "17": {
+        "slot": 17,
+        "name": "Woodcutter",
+        "level": 0,
+        "gid": null
+      },
+      "18": {
+        "slot": 18,
+        "name": "Clay Pit",
+        "level": 0,
+        "gid": null
+      }
+    },
+    "buildings": {
+      "19": {
+        "slot": 19,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "20": {
+        "slot": 20,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "21": {
+        "slot": 21,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "22": {
+        "slot": 22,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "23": {
+        "slot": 23,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "24": {
+        "slot": 24,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "25": {
+        "slot": 25,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "26": {
+        "slot": 26,
+        "name": "Main Building",
+        "level": 1,
+        "gid": null
+      },
+      "27": {
+        "slot": 27,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "28": {
+        "slot": 28,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "29": {
+        "slot": 29,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "30": {
+        "slot": 30,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "31": {
+        "slot": 31,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "32": {
+        "slot": 32,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "33": {
+        "slot": 33,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "34": {
+        "slot": 34,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "35": {
+        "slot": 35,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "36": {
+        "slot": 36,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "37": {
+        "slot": 37,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "38": {
+        "slot": 38,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "39": {
+        "slot": 39,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "40": {
+        "slot": 40,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      }
+    },
+    "building_types": {}
+  },
+  "2": {
+    "name": "2",
+    "scanned_at": "2026-02-03 03:21:57",
+    "resource_fields": {
+      "1": {
+        "slot": 1,
+        "name": "Woodcutter",
+        "level": 10,
+        "gid": null
+      },
+      "2": {
+        "slot": 2,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "3": {
+        "slot": 3,
+        "name": "Woodcutter",
+        "level": 10,
+        "gid": null
+      },
+      "4": {
+        "slot": 4,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "5": {
+        "slot": 5,
+        "name": "Clay Pit",
+        "level": 10,
+        "gid": null
+      },
+      "6": {
+        "slot": 6,
+        "name": "Clay Pit",
+        "level": 10,
+        "gid": null
+      },
+      "7": {
+        "slot": 7,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "8": {
+        "slot": 8,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "9": {
+        "slot": 9,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "10": {
+        "slot": 10,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "11": {
+        "slot": 11,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "12": {
+        "slot": 12,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "13": {
+        "slot": 13,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "14": {
+        "slot": 14,
+        "name": "Woodcutter",
+        "level": 10,
+        "gid": null
+      },
+      "15": {
+        "slot": 15,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "16": {
+        "slot": 16,
+        "name": "Clay Pit",
+        "level": 10,
+        "gid": null
+      },
+      "17": {
+        "slot": 17,
+        "name": "Woodcutter",
+        "level": 10,
+        "gid": null
+      },
+      "18": {
+        "slot": 18,
+        "name": "Clay Pit",
+        "level": 10,
+        "gid": null
+      }
+    },
+    "buildings": {
+      "19": {
+        "slot": 19,
+        "name": "Market",
+        "level": 20,
+        "gid": null
+      },
+      "20": {
+        "slot": 20,
+        "name": "Cranny",
+        "level": 10,
+        "gid": null
+      },
+      "21": {
+        "slot": 21,
+        "name": "Heromansion",
+        "level": 20,
+        "gid": null
+      },
+      "22": {
+        "slot": 22,
+        "name": "Tournament Square",
+        "level": 20,
+        "gid": null
+      },
+      "23": {
+        "slot": 23,
+        "name": "Stable",
+        "level": 20,
+        "gid": null
+      },
+      "24": {
+        "slot": 24,
+        "name": "Academy",
+        "level": 20,
+        "gid": null
+      },
+      "25": {
+        "slot": 25,
+        "name": "Workshop",
+        "level": 20,
+        "gid": null
+      },
+      "26": {
+        "slot": 26,
+        "name": "Main Building",
+        "level": 20,
+        "gid": null
+      },
+      "27": {
+        "slot": 27,
+        "name": "Treasury",
+        "level": 20,
+        "gid": null
+      },
+      "28": {
+        "slot": 28,
+        "name": "Residence",
+        "level": 20,
+        "gid": null
+      },
+      "29": {
+        "slot": 29,
+        "name": "Townhall",
+        "level": 20,
+        "gid": null
+      },
+      "30": {
+        "slot": 30,
+        "name": "Warehouse",
+        "level": 20,
+        "gid": null
+      },
+      "31": {
+        "slot": 31,
+        "name": "Granary",
+        "level": 20,
+        "gid": null
+      },
+      "32": {
+        "slot": 32,
+        "name": "Barracks",
+        "level": 20,
+        "gid": null
+      },
+      "33": {
+        "slot": 33,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "34": {
+        "slot": 34,
+        "name": "Grainmill",
+        "level": 5,
+        "gid": null
+      },
+      "35": {
+        "slot": 35,
+        "name": "Sawmill",
+        "level": 5,
+        "gid": null
+      },
+      "36": {
+        "slot": 36,
+        "name": "Smithy",
+        "level": 20,
+        "gid": null
+      },
+      "37": {
+        "slot": 37,
+        "name": "Brickyard",
+        "level": 5,
+        "gid": null
+      },
+      "38": {
+        "slot": 38,
+        "name": "Ironfoundry",
+        "level": 5,
+        "gid": null
+      },
+      "39": {
+        "slot": 39,
+        "name": "Rallypoint",
+        "level": 20,
+        "gid": null
+      },
+      "40": {
+        "slot": 40,
+        "name": "City Wall",
+        "level": 20,
+        "gid": null
+      }
+    },
+    "building_types": {}
+  },
+  "6": {
+    "name": "6",
+    "scanned_at": "2026-02-03 03:31:49",
+    "resource_fields": {
+      "1": {
+        "slot": 1,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "2": {
+        "slot": 2,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "3": {
+        "slot": 3,
+        "name": "Woodcutter",
+        "level": 10,
+        "gid": null
+      },
+      "4": {
+        "slot": 4,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "5": {
+        "slot": 5,
+        "name": "Clay Pit",
+        "level": 10,
+        "gid": null
+      },
+      "6": {
+        "slot": 6,
+        "name": "Clay Pit",
+        "level": 10,
+        "gid": null
+      },
+      "7": {
+        "slot": 7,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "8": {
+        "slot": 8,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "9": {
+        "slot": 9,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "10": {
+        "slot": 10,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "11": {
+        "slot": 11,
+        "name": "Iron Mine",
+        "level": 10,
+        "gid": null
+      },
+      "12": {
+        "slot": 12,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "13": {
+        "slot": 13,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "14": {
+        "slot": 14,
+        "name": "Woodcutter",
+        "level": 10,
+        "gid": null
+      },
+      "15": {
+        "slot": 15,
+        "name": "Cropland",
+        "level": 10,
+        "gid": null
+      },
+      "16": {
+        "slot": 16,
+        "name": "Clay Pit",
+        "level": 10,
+        "gid": null
+      },
+      "17": {
+        "slot": 17,
+        "name": "Woodcutter",
+        "level": 10,
+        "gid": null
+      },
+      "18": {
+        "slot": 18,
+        "name": "Clay Pit",
+        "level": 10,
+        "gid": null
+      }
+    },
+    "buildings": {
+      "19": {
+        "slot": 19,
+        "name": "Market",
+        "level": 20,
+        "gid": null
+      },
+      "20": {
+        "slot": 20,
+        "name": "Cranny",
+        "level": 10,
+        "gid": null
+      },
+      "21": {
+        "slot": 21,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "22": {
+        "slot": 22,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "23": {
+        "slot": 23,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "24": {
+        "slot": 24,
+        "name": "Residence",
+        "level": 20,
+        "gid": null
+      },
+      "25": {
+        "slot": 25,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "26": {
+        "slot": 26,
+        "name": "Main Building",
+        "level": 20,
+        "gid": null
+      },
+      "27": {
+        "slot": 27,
+        "name": "Academy",
+        "level": 20,
+        "gid": null
+      },
+      "28": {
+        "slot": 28,
+        "name": "Heromansion",
+        "level": 20,
+        "gid": null
+      },
+      "29": {
+        "slot": 29,
+        "name": "Construction of new building",
+        "level": 0,
+        "gid": null
+      },
+      "30": {
+        "slot": 30,
+        "name": "Warehouse",
+        "level": 20,
+        "gid": null
+      },
+      "31": {
+        "slot": 31,
+        "name": "Granary",
+        "level": 20,
+        "gid": null
+      },
+      "32": {
+        "slot": 32,
+        "name": "Barracks",
+        "level": 20,
+        "gid": null
+      },
+      "33": {
+        "slot": 33,
+        "name": "Ironfoundry",
+        "level": 5,
+        "gid": null
+      },
+      "34": {
+        "slot": 34,
+        "name": "Grainmill",
+        "level": 5,
+        "gid": null
+      },
+      "35": {
+        "slot": 35,
+        "name": "Smithy",
+        "level": 20,
+        "gid": null
+      },
+      "36": {
+        "slot": 36,
+        "name": "Sawmill",
+        "level": 5,
+        "gid": null
+      },
+      "37": {
+        "slot": 37,
+        "name": "Treasury",
+        "level": 20,
+        "gid": null
+      },
+      "38": {
+        "slot": 38,
+        "name": "Brickyard",
+        "level": 5,
+        "gid": null
+      },
+      "39": {
+        "slot": 39,
+        "name": "Rallypoint",
+        "level": 20,
+        "gid": null
+      },
+      "40": {
+        "slot": 40,
+        "name": "City Wall",
+        "level": 20,
+        "gid": null
+      }
+    },
+    "building_types": {}
+  }
+}

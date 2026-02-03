@@ -1,0 +1,37 @@
+2026-02-03 00:01:07 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 00:04:02 | ERROR    | ERROR | main_menu | Message: Failed to decode response from marionette
+
+2026-02-03 00:04:16 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 00:04:24 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 00:22:11 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 00:28:08 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 01:10:18 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 01:15:59 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 01:16:00 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 01:22:47 | ERROR    | ERROR | main_menu | Message: Reached error page: about:neterror?e=connectionFailure&u=https%3A//ts2.travian-speed.com/build.php%3Fid%3D8&c=UTF-8&d=Firefox%20can%E2%80%99t%20establish%20a%20connection%20to%20the%20server%20at%20ts2.travian-speed.com.
+Stacktrace:
+RemoteError@chrome://remote/content/shared/RemoteError.sys.mjs:8:8
+WebDriverError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:199:5
+UnknownError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:910:5
+checkReadyState@chrome://remote/content/marionette/navigate.sys.mjs:58:24
+onNavigation@chrome://remote/content/marionette/navigate.sys.mjs:347:39
+emit@resource://gre/modules/EventEmitter.sys.mjs:156:19
+receiveMessage@chrome://remote/content/marionette/actors/MarionetteEventsParent.sys.mjs:33:25
+
+2026-02-03 01:31:38 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 01:37:30 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 01:37:34 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 01:38:36 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 01:58:55 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 02:03:16 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 02:04:39 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 02:05:01 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 02:33:59 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 02:34:06 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 02:34:06 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 03:20:43 | ERROR    | ERROR | main_menu | HTTPConnectionPool(host='localhost', port=54644): Max retries exceeded with url: /session/45c05e6b-fbac-4855-954a-b0dcce032fbe/url (Caused by NewConnectionError("HTTPConnection(host='localhost', port=54644): Failed to establish a new connection: [Errno 111] Connection refused"))
+2026-02-03 03:21:39 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 03:25:15 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 03:30:48 | ERROR    | ERROR | main_menu | HTTPConnectionPool(host='localhost', port=54822): Read timed out. (read timeout=120)
+2026-02-03 03:32:49 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-03 03:33:07 | INFO     | LOGIN | SUCCESS | anonzvader

@@ -1,0 +1,373 @@
+{
+  "counter": 26,
+  "default_troops": {
+    "t1": 111111
+  },
+  "raid_interval": 300,
+  "tribe": "romans",
+  "server_speed": 1,
+  "home_x": 0,
+  "home_y": 0,
+  "farms": [
+    {
+      "id": 1,
+      "name": "jirachi's village (-49 | 51) (capital)",
+      "x": -49,
+      "y": 51,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:21",
+      "raids_sent": 121,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 8,
+      "next_raid_at": 1770119849.531859
+    },
+    {
+      "id": 2,
+      "name": "Spark's village (-43 | 40) (capital)",
+      "x": -43,
+      "y": 40,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:25",
+      "raids_sent": 110,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 2,
+      "next_raid_at": 1770119847.4182858
+    },
+    {
+      "id": 3,
+      "name": "Boss10's village (-67 | 32) (capital)",
+      "x": -67,
+      "y": 32,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:29",
+      "raids_sent": 111,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 16,
+      "next_raid_at": 1770119865.2281883
+    },
+    {
+      "id": 4,
+      "name": "Jerem0806's village (-45 | 61) (capital)",
+      "x": -45,
+      "y": 61,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:32",
+      "raids_sent": 108,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 10,
+      "next_raid_at": 1770119862.9011784
+    },
+    {
+      "id": 5,
+      "name": "mahdiyar's village (-19 | 33) (capital)",
+      "x": -19,
+      "y": 33,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:36",
+      "raids_sent": 106,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 4,
+      "next_raid_at": 1770119860.8462884
+    },
+    {
+      "id": 6,
+      "name": "fayaz's village (-17 | 32) (capital)",
+      "x": -17,
+      "y": 32,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:40",
+      "raids_sent": 108,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 4,
+      "next_raid_at": 1770119864.9451056
+    },
+    {
+      "id": 7,
+      "name": "facos's village (-15 | 32) (capital)",
+      "x": -15,
+      "y": 32,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:45",
+      "raids_sent": 107,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 4,
+      "next_raid_at": 1770119869.085366
+    },
+    {
+      "id": 8,
+      "name": "bayani's village (-14 | 29) (capital)",
+      "x": -14,
+      "y": 29,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:49",
+      "raids_sent": 106,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 16,
+      "next_raid_at": 1770119885.2866683
+    },
+    {
+      "id": 9,
+      "name": "serial's village (-12 | 25) (capital)",
+      "x": -12,
+      "y": 25,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:53",
+      "raids_sent": 106,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 8,
+      "next_raid_at": 1770119881.2363825
+    },
+    {
+      "id": 10,
+      "name": "cremlin's village (-13 | 23) (capital)",
+      "x": -13,
+      "y": 23,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:56:22",
+      "raids_sent": 105,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 93160,
+      "next_raid_at": 1770212942.188063
+    },
+    {
+      "id": 12,
+      "name": "morvarid's village (-9 | 35) (capital)",
+      "x": -9,
+      "y": 35,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:56:26",
+      "raids_sent": 104,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 8,
+      "next_raid_at": 1770119794.0964832
+    },
+    {
+      "id": 13,
+      "name": "VLAD's village (-10 | 39) (capital)",
+      "x": -10,
+      "y": 39,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:56:30",
+      "raids_sent": 104,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 38,
+      "next_raid_at": 1770119828.2299373
+    },
+    {
+      "id": 14,
+      "name": "razi's village (-6 | 34) (capital)",
+      "x": -6,
+      "y": 34,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:56:34",
+      "raids_sent": 104,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 30,
+      "next_raid_at": 1770119824.1883385
+    },
+    {
+      "id": 15,
+      "name": "jokstrav's village (-3 | 34) (capital)",
+      "x": -3,
+      "y": 34,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:56:37",
+      "raids_sent": 104,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 26,
+      "next_raid_at": 1770119823.8393612
+    },
+    {
+      "id": 16,
+      "name": "petros's village (-2 | 33) (capital)",
+      "x": -2,
+      "y": 33,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:56:41",
+      "raids_sent": 103,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 18,
+      "next_raid_at": 1770119819.757772
+    },
+    {
+      "id": 17,
+      "name": "novac's village (-2 | 32) (capital)",
+      "x": -2,
+      "y": 32,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:56:46",
+      "raids_sent": 104,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 6,
+      "next_raid_at": 1770119812.1975887
+    },
+    {
+      "id": 18,
+      "name": "sorian's village (5 | 29) (capital)",
+      "x": 5,
+      "y": 29,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:56:49",
+      "raids_sent": 105,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 2,
+      "next_raid_at": 1770119811.8699696
+    },
+    {
+      "id": 19,
+      "name": "GAMB- (-7 | 38) (capital)",
+      "x": -7,
+      "y": 38,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:56:54",
+      "raids_sent": 98,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 18,
+      "next_raid_at": 1770119832.1227388
+    },
+    {
+      "id": 20,
+      "name": "Pink (-21 | 39) (capital)",
+      "x": -21,
+      "y": 39,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:56:57",
+      "raids_sent": 97,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 10,
+      "next_raid_at": 1770119827.935217
+    },
+    {
+      "id": 21,
+      "name": "Occupied Oasis (-63 | 48)",
+      "x": -63,
+      "y": 48,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:01",
+      "raids_sent": 91,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 4,
+      "next_raid_at": 1770119825.655444
+    },
+    {
+      "id": 22,
+      "name": "Occupied Oasis (-61 | 48)",
+      "x": -61,
+      "y": 48,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:05",
+      "raids_sent": 91,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 12,
+      "next_raid_at": 1770119837.5213342
+    },
+    {
+      "id": 24,
+      "name": "Occupied Oasis (-63 | 46)",
+      "x": -63,
+      "y": 46,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:09",
+      "raids_sent": 91,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 2,
+      "next_raid_at": 1770119831.1495786
+    },
+    {
+      "id": 25,
+      "name": "Occupied Oasis (-59 | 43)",
+      "x": -59,
+      "y": 43,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:12",
+      "raids_sent": 91,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 4,
+      "next_raid_at": 1770119836.8624358
+    },
+    {
+      "id": 26,
+      "name": "Occupied Oasis (-59 | 50)",
+      "x": -59,
+      "y": 50,
+      "troops": {
+        "t5": 1111111
+      },
+      "last_raid": "12:57:16",
+      "raids_sent": 91,
+      "enabled": true,
+      "notes": "",
+      "travel_time": 18,
+      "next_raid_at": 1770119854.5151222
+    }
+  ]
+}

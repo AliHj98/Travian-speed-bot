@@ -1,0 +1,60 @@
+2026-01-27 00:13:20 | ERROR    | ERROR | initialization | [Errno 26] Text file busy: '/root/.wdm/drivers/geckodriver/linux64/v0.36.0/geckodriver'
+2026-01-27 00:13:31 | ERROR    | ERROR | initialization | [Errno 26] Text file busy: '/root/.wdm/drivers/geckodriver/linux64/v0.36.0/geckodriver'
+2026-01-27 00:13:47 | ERROR    | ERROR | initialization | [Errno 26] Text file busy: '/root/.wdm/drivers/geckodriver/linux64/v0.36.0/geckodriver'
+2026-01-27 00:14:04 | ERROR    | ERROR | initialization | [Errno 26] Text file busy: '/root/.wdm/drivers/geckodriver/linux64/v0.36.0/geckodriver'
+2026-01-27 00:14:13 | ERROR    | ERROR | initialization | [Errno 26] Text file busy: '/root/.wdm/drivers/geckodriver/linux64/v0.36.0/geckodriver'
+2026-01-27 00:14:35 | ERROR    | ERROR | initialization | [Errno 26] Text file busy: '/root/.wdm/drivers/geckodriver/linux64/v0.36.0/geckodriver'
+2026-01-27 00:15:08 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 00:17:08 | ERROR    | ERROR | initialization | Could not reach host. Are you offline?
+2026-01-27 00:17:31 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 00:52:18 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 00:54:24 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 00:54:26 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 00:54:47 | INFO     | RESOURCES | wood=5838826 clay=3062828 iron=234091752 crop=543549205
+2026-01-27 00:54:47 | INFO     | PRODUCTION | wood=171900000/h clay=147000000/h iron=122500000/h crop=194638272/h
+2026-01-27 00:54:50 | INFO     | CYCLE | #1 | Actions: status_update, upgrade
+2026-01-27 00:55:17 | INFO     | RESOURCES | wood=7492320 clay=5435452 iron=6345204 crop=8164432
+2026-01-27 00:55:17 | INFO     | PRODUCTION | wood=10000000/h clay=6000000/h iron=8000000/h crop=11999745/h
+2026-01-27 00:55:33 | INFO     | CYCLE | #1 | Actions: status_update
+2026-01-27 01:00:08 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 01:03:28 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 01:09:50 | INFO     | RESOURCES | wood=9380500 clay=7556220 iron=11260011 crop=12000000
+2026-01-27 01:09:50 | INFO     | PRODUCTION | wood=8000000/h clay=6000000/h iron=10000000/h crop=11999740/h
+2026-01-27 01:10:07 | INFO     | CYCLE | #1 | Actions: status_update, train
+2026-01-27 01:11:10 | INFO     | RESOURCES | wood=10139541 clay=7023778 iron=8462974 crop=11341036
+2026-01-27 01:11:10 | INFO     | PRODUCTION | wood=10000000/h clay=6000000/h iron=8000000/h crop=11999745/h
+2026-01-27 01:11:26 | INFO     | CYCLE | #2 | Actions: status_update
+2026-01-27 01:13:42 | ERROR    | ERROR | main_menu | 'upgrade_cost'
+2026-01-27 01:14:10 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 01:16:13 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 01:17:07 | ERROR    | ERROR | main_menu | 'upgrade_cost'
+2026-01-27 01:17:33 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 01:25:24 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 01:25:39 | INFO     | LOGIN | FAILED | metalvader
+2026-01-27 01:26:05 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 01:26:32 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 01:32:10 | ERROR    | ERROR | initialization | Message: Failed to decode response from marionette
+
+2026-01-27 01:32:42 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 01:33:01 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 01:33:46 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 01:34:26 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 01:35:11 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 21:27:00 | ERROR    | ERROR | initialization | Could not reach host. Are you offline?
+2026-01-27 21:30:39 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 21:45:19 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 21:53:26 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 21:54:34 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 21:56:06 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 21:58:54 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 22:02:40 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 22:06:29 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 22:30:04 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 22:33:52 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 22:40:02 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 22:57:34 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 22:59:26 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 23:03:51 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 23:20:47 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 23:37:43 | INFO     | LOGIN | SUCCESS | metalvader
+2026-01-27 23:40:23 | INFO     | LOGIN | SUCCESS | metalvader

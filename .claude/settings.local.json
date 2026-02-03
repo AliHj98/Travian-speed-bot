@@ -11,7 +11,8 @@
       "Bash(chmod:*)",
       "Bash(sudo apt-get update:*)",
       "Bash(sudo apt-get:*)",
-      "Bash(tesseract:*)"
+      "Bash(tesseract:*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
