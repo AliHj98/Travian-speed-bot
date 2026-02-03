@@ -16,6 +16,9 @@ from datetime import datetime
 from typing import Optional, Dict, List
 from threading import Thread, Event
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import WebDriverException, TimeoutException
+from urllib3.exceptions import MaxRetryError, NewConnectionError, ReadTimeoutError
+from requests.exceptions import ConnectionError, ReadTimeout
 
 from config import config
 from core.browser import BrowserManager
@@ -45,6 +48,40 @@ class Colors:
 
 def clear_screen():
     os.system('clear' if os.name != 'nt' else 'cls')
+
+
+# Connection error types that indicate network issues
+CONNECTION_ERRORS = (
+    WebDriverException,
+    TimeoutException,
+    MaxRetryError,
+    NewConnectionError,
+    ReadTimeoutError,
+    ConnectionError,
+    ReadTimeout,
+    OSError,
+)
+
+
+def is_connection_error(e: Exception) -> bool:
+    """Check if exception is a connection-related error"""
+    error_msg = str(e).lower()
+    connection_keywords = [
+        'read timed out',
+        'connection refused',
+        'connection reset',
+        'no route to host',
+        'network is unreachable',
+        'name or service not known',
+        'temporary failure',
+        'connectionpool',
+        'max retries',
+        'newconnectionerror',
+        'remotedisconnected',
+    ]
+    if isinstance(e, CONNECTION_ERRORS):
+        return True
+    return any(keyword in error_msg for keyword in connection_keywords)
 
 
 def print_header(title: str):
@@ -204,6 +241,115 @@ class InteractiveBot:
             self.browser.stop()
         self.logger.info("Bot shutdown complete")
         print(f"\n{Colors.GREEN}✓ Bot stopped. Goodbye!{Colors.END}")
+
+    # ==================== CONNECTION HANDLING ====================
+
+    def wait_for_connection(self, stop_flag=None, max_wait=3600) -> bool:
+        """
+        Wait for internet connection to be restored.
+        Returns True when connected, False if stop_flag triggered or max_wait exceeded.
+        """
+        start_time = time.time()
+        retry_interval = 5  # Start with 5 seconds
+        max_retry_interval = 60  # Max 60 seconds between retries
+
+        print(f"\n{Colors.RED}⚠️  Connection lost! Waiting for reconnection...{Colors.END}")
+        self.logger.warning("Connection lost, entering reconnection loop")
+
+        while True:
+            # Check stop flag
+            if stop_flag and stop_flag.should_stop():
+                print(f"{Colors.YELLOW}Stop requested, exiting reconnection wait{Colors.END}")
+                return False
+
+            # Check max wait time
+            elapsed = time.time() - start_time
+            if elapsed > max_wait:
+                print(f"{Colors.RED}Max wait time exceeded ({max_wait}s){Colors.END}")
+                self.logger.error(f"Connection wait exceeded {max_wait}s")
+                return False
+
+            # Try to check connection
+            try:
+                # Simple connectivity test - try to get current URL
+                if self.browser and self.browser.driver:
+                    _ = self.browser.driver.current_url
+                    # If we get here, connection is restored
+                    print(f"{Colors.GREEN}✓ Connection restored!{Colors.END}")
+                    self.logger.info("Connection restored")
+
+                    # Try to navigate back to game
+                    try:
+                        self.browser.navigate_to(f"{config.base_url}/dorf1.php")
+                        time.sleep(1)
+                        # Verify we're logged in
+                        if self.session.verify_login():
+                            print(f"{Colors.GREEN}✓ Session still valid{Colors.END}")
+                            return True
+                        else:
+                            print(f"{Colors.YELLOW}Session expired, re-logging in...{Colors.END}")
+                            if self.session.login():
+                                print(f"{Colors.GREEN}✓ Re-login successful{Colors.END}")
+                                return True
+                            else:
+                                print(f"{Colors.RED}Re-login failed, will retry...{Colors.END}")
+                    except Exception as e:
+                        if is_connection_error(e):
+                            pass  # Still no connection, continue waiting
+                        else:
+                            raise
+            except Exception as e:
+                if not is_connection_error(e):
+                    # Not a connection error, re-raise
+                    raise
+
+            # Still disconnected, wait and retry
+            mins_elapsed = int(elapsed / 60)
+            secs_elapsed = int(elapsed % 60)
+            print(f"{Colors.YELLOW}  Disconnected for {mins_elapsed}m {secs_elapsed}s - retrying in {retry_interval}s...{Colors.END}")
+
+            # Sleep in small chunks to check stop flag
+            for _ in range(retry_interval):
+                if stop_flag and stop_flag.should_stop():
+                    return False
+                time.sleep(1)
+
+            # Exponential backoff up to max
+            retry_interval = min(retry_interval * 2, max_retry_interval)
+
+    def run_with_reconnect(self, func, stop_flag=None, *args, **kwargs):
+        """
+        Run a function with automatic reconnection on connection errors.
+        Returns the function result, or None if stopped or max retries exceeded.
+        """
+        max_retries = 10
+        retries = 0
+
+        while retries < max_retries:
+            if stop_flag and stop_flag.should_stop():
+                return None
+
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                if is_connection_error(e):
+                    retries += 1
+                    print(f"\n{Colors.RED}Connection error (attempt {retries}/{max_retries}): {str(e)[:100]}{Colors.END}")
+                    self.logger.warning(f"Connection error: {e}")
+
+                    if self.wait_for_connection(stop_flag):
+                        print(f"{Colors.GREEN}Retrying operation...{Colors.END}")
+                        continue
+                    else:
+                        return None
+                else:
+                    # Not a connection error, log and continue
+                    print(f"{Colors.RED}Error: {e}{Colors.END}")
+                    self.logger.error(f"Non-connection error: {e}")
+                    return None
+
+        print(f"{Colors.RED}Max retries ({max_retries}) exceeded{Colors.END}")
+        return None
 
     # ==================== STATUS ====================
 
@@ -1584,22 +1730,47 @@ class InteractiveBot:
 
         input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
 
-    def configure_troops(self) -> Dict[str, int]:
+    def configure_troops(self, show_tribe: bool = True) -> Dict[str, int]:
         """Configure troops for a farm"""
         print(f"\n{Colors.YELLOW}Configure troops to send:{Colors.END}")
-        print("Enter troop amounts (0 to skip):\n")
+        print("Enter troop amounts (0 or blank to skip):\n")
 
         troops = {}
 
-        # Common troop input names
-        troop_types = [
-            ('t1', 'Troop 1 (Infantry)'),
-            ('t2', 'Troop 2 (Infantry)'),
-            ('t3', 'Troop 3 (Infantry)'),
-            ('t4', 'Troop 4 (Scout/Cavalry)'),
-            ('t5', 'Troop 5 (Cavalry)'),
-            ('t6', 'Troop 6 (Cavalry)'),
-        ]
+        # Tribe-specific troop names
+        tribe = self.farming.tribe if hasattr(self.farming, 'tribe') else 'romans'
+
+        tribe_troops = {
+            'romans': [
+                ('t1', 'Legionnaire'),
+                ('t2', 'Praetorian'),
+                ('t3', 'Imperian'),
+                ('t4', 'Equites Legati'),
+                ('t5', 'Equites Imperatoris'),
+                ('t6', 'Equites Caesaris'),
+            ],
+            'gauls': [
+                ('t1', 'Phalanx'),
+                ('t2', 'Swordsman'),
+                ('t3', 'Pathfinder'),
+                ('t4', 'Theutates Thunder'),
+                ('t5', 'Druidrider'),
+                ('t6', 'Haeduan'),
+            ],
+            'teutons': [
+                ('t1', 'Clubswinger'),
+                ('t2', 'Spearfighter'),
+                ('t3', 'Axefighter'),
+                ('t4', 'Scout'),
+                ('t5', 'Paladin'),
+                ('t6', 'Teutonic Knight'),
+            ],
+        }
+
+        troop_types = tribe_troops.get(tribe, tribe_troops['romans'])
+
+        if show_tribe:
+            print(f"  {Colors.CYAN}Tribe: {tribe.capitalize()}{Colors.END}\n")
 
         for troop_id, troop_name in troop_types:
             amount = get_input(f"  {troop_name} ({troop_id}): ")
@@ -1703,23 +1874,114 @@ class InteractiveBot:
             input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
             return
 
-        print(f"This will update troops for all {len(all_farms)} farm(s).\n")
-        print(f"Current troops on first farm: {all_farms[0].troops}\n")
+        enabled_farms = self.farming.get_enabled_farms()
+        print(f"Total farms: {len(all_farms)} ({len(enabled_farms)} enabled)\n")
 
-        troops = self.configure_troops()
-        if not troops:
-            print(f"{Colors.RED}No troops configured{Colors.END}")
-            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+        # Show current troop configs
+        print(f"{Colors.YELLOW}Current troop configurations:{Colors.END}")
+        unique_configs = {}
+        for farm in all_farms:
+            config_str = str(sorted(farm.troops.items())) if farm.troops else "none"
+            if config_str not in unique_configs:
+                unique_configs[config_str] = []
+            unique_configs[config_str].append(farm.name)
+
+        for config, farms in unique_configs.items():
+            print(f"  {config}: {len(farms)} farm(s)")
+
+        print(f"\n{Colors.BOLD}Options:{Colors.END}")
+        print(f"  1. Enter new troops manually")
+        print(f"  2. Copy from a specific farm")
+        print(f"  3. Quick set (e.g., '10 t3' for 10 of troop 3)")
+        print(f"  4. Use default troops")
+        print(f"  5. Clear all troops")
+        print(f"  0. Cancel")
+
+        choice = get_input("\nChoice: ")
+
+        troops = None
+
+        if choice == "0":
+            return
+        elif choice == "1":
+            troops = self.configure_troops()
+        elif choice == "2":
+            self.farming.print_farm_list()
+            farm_id = get_input("\nEnter farm ID to copy from: ")
+            try:
+                farm_id = int(farm_id)
+                if farm_id in self.farming.farms:
+                    troops = self.farming.farms[farm_id].troops.copy()
+                    print(f"Copying troops: {troops}")
+                else:
+                    print(f"{Colors.RED}Farm not found{Colors.END}")
+                    input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+                    return
+            except ValueError:
+                print(f"{Colors.RED}Invalid ID{Colors.END}")
+                input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+                return
+        elif choice == "3":
+            print(f"\n{Colors.YELLOW}Quick set format: <amount> <troop_id>{Colors.END}")
+            print(f"Examples: '10 t3', '5 t1', '20 t4 10 t5'")
+            quick = get_input("Enter: ")
+            troops = {}
+            parts = quick.split()
+            i = 0
+            while i < len(parts) - 1:
+                try:
+                    amount = int(parts[i])
+                    troop_id = parts[i + 1].lower()
+                    if troop_id.startswith('t') and troop_id[1:].isdigit():
+                        troops[troop_id] = amount
+                    i += 2
+                except (ValueError, IndexError):
+                    i += 1
+            if troops:
+                print(f"Parsed: {troops}")
+            else:
+                print(f"{Colors.RED}Could not parse troops{Colors.END}")
+                input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+                return
+        elif choice == "4":
+            troops = self.farming.default_troops.copy()
+            if not troops:
+                print(f"{Colors.RED}No default troops set. Use option 7 in Farming menu first.{Colors.END}")
+                input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+                return
+            print(f"Using default troops: {troops}")
+        elif choice == "5":
+            troops = {}
+            print("Clearing all troops")
+        else:
             return
 
-        confirm = get_input(f"\nSet {troops} on all {len(all_farms)} farms? (y/n): ")
+        if troops is None:
+            return
+
+        # Choose which farms to update
+        print(f"\n{Colors.BOLD}Apply to:{Colors.END}")
+        print(f"  1. ALL farms ({len(all_farms)})")
+        print(f"  2. Only ENABLED farms ({len(enabled_farms)})")
+        print(f"  0. Cancel")
+
+        apply_choice = get_input("\nChoice: ")
+
+        if apply_choice == "1":
+            farms_to_update = all_farms
+        elif apply_choice == "2":
+            farms_to_update = enabled_farms
+        else:
+            return
+
+        confirm = get_input(f"\nSet {troops} on {len(farms_to_update)} farms? (y/n): ")
         if confirm.lower() != 'y':
             return
 
-        for farm in all_farms:
+        for farm in farms_to_update:
             self.farming.update_farm_troops(farm.id, troops.copy())
 
-        print(f"{Colors.GREEN}✓ Updated troops for {len(all_farms)} farm(s){Colors.END}")
+        print(f"{Colors.GREEN}✓ Updated troops for {len(farms_to_update)} farm(s){Colors.END}")
         input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
 
     def send_all_raids(self):
@@ -2000,8 +2262,16 @@ class InteractiveBot:
                 if confirm.lower() != 'y':
                     return
 
+                # Use stop flag for upgrades
+                stop_flag = StopFlag()
+                listener_thread = Thread(target=key_listener, args=(stop_flag,), daemon=True)
+                listener_thread.start()
+                print(f"{Colors.RED}>>> Press Q/S to stop <<<{Colors.END}\n")
+
                 for m in matches:
-                    self.buildings.upgrade_to_level(m['id'], target_level)
+                    if stop_flag.should_stop():
+                        break
+                    self.buildings.upgrade_to_level(m['id'], target_level, stop_flag.should_stop)
 
             else:
                 try:
@@ -2011,7 +2281,10 @@ class InteractiveBot:
                         print(f"\n{Colors.GREEN}Upgrading {selected['name']} to level {target_level}{Colors.END}")
                         confirm = get_input("Confirm? (y/n): ")
                         if confirm.lower() == 'y':
-                            self.buildings.upgrade_to_level(selected['id'], target_level)
+                            stop_flag = StopFlag()
+                            listener_thread = Thread(target=key_listener, args=(stop_flag,), daemon=True)
+                            listener_thread.start()
+                            self.buildings.upgrade_to_level(selected['id'], target_level, stop_flag.should_stop)
                     else:
                         print(f"{Colors.RED}Invalid selection{Colors.END}")
                 except ValueError:
@@ -2024,7 +2297,10 @@ class InteractiveBot:
 
             confirm = get_input("\nStart upgrade? (y/n): ")
             if confirm.lower() == 'y':
-                result = self.buildings.upgrade_to_level(selected['id'], target_level)
+                stop_flag = StopFlag()
+                listener_thread = Thread(target=key_listener, args=(stop_flag,), daemon=True)
+                listener_thread.start()
+                result = self.buildings.upgrade_to_level(selected['id'], target_level, stop_flag.should_stop)
                 self.logger.info(f"AI Command: {selected['name']} L{result['start_level']} -> L{result['final_level']}")
 
         input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
@@ -2168,6 +2444,7 @@ class InteractiveBot:
                 "Toggle attack notifications",
                 "Save settings",
                 "Load settings",
+                "Clear cache",
             ])
 
             choice = get_input()
@@ -2188,6 +2465,8 @@ class InteractiveBot:
                 self.save_settings()
             elif choice == "7":
                 self.load_settings()
+            elif choice == "8":
+                self.clear_all_cache()
 
     def set_priority(self):
         """Set upgrade priority"""
@@ -2234,6 +2513,98 @@ class InteractiveBot:
             print(f"{Colors.RED}✗ Could not load: {e}{Colors.END}")
         input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
 
+    def clear_all_cache(self):
+        """Clear all cache files"""
+        import shutil
+
+        # Define cache files and directories
+        cache_files = [
+            'farm_list.json',
+            'village_cache.json',
+            'village_training.json',
+            'bot_settings.json',
+        ]
+        cache_dirs = [
+            'session_data',
+            'screenshots',
+            'logs',
+        ]
+
+        print(f"\n{Colors.YELLOW}Cache files that will be deleted:{Colors.END}")
+        for f in cache_files:
+            exists = os.path.exists(f)
+            status = f"{Colors.GREEN}exists{Colors.END}" if exists else f"{Colors.RED}not found{Colors.END}"
+            print(f"  - {f}: {status}")
+
+        print(f"\n{Colors.YELLOW}Cache directories that will be cleared:{Colors.END}")
+        for d in cache_dirs:
+            exists = os.path.isdir(d)
+            status = f"{Colors.GREEN}exists{Colors.END}" if exists else f"{Colors.RED}not found{Colors.END}"
+            print(f"  - {d}/: {status}")
+
+        print(f"\n{Colors.BOLD}Select what to clear:{Colors.END}")
+        print(f"  1. All cache (files + directories)")
+        print(f"  2. Only JSON files (farm_list, village_cache, etc.)")
+        print(f"  3. Only session data (requires re-login)")
+        print(f"  4. Only screenshots and logs")
+        print(f"  0. Cancel")
+
+        choice = get_input("\nChoice: ")
+
+        if choice == "0":
+            print(f"{Colors.YELLOW}Cancelled{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        deleted_count = 0
+
+        if choice in ["1", "2"]:
+            # Delete JSON files
+            for f in cache_files:
+                try:
+                    if os.path.exists(f):
+                        os.remove(f)
+                        print(f"  {Colors.GREEN}✓ Deleted {f}{Colors.END}")
+                        deleted_count += 1
+                except Exception as e:
+                    print(f"  {Colors.RED}✗ Could not delete {f}: {e}{Colors.END}")
+
+        if choice in ["1", "3"]:
+            # Clear session_data
+            if os.path.isdir('session_data'):
+                try:
+                    shutil.rmtree('session_data')
+                    print(f"  {Colors.GREEN}✓ Deleted session_data/{Colors.END}")
+                    deleted_count += 1
+                except Exception as e:
+                    print(f"  {Colors.RED}✗ Could not delete session_data: {e}{Colors.END}")
+
+        if choice in ["1", "4"]:
+            # Clear screenshots and logs
+            for d in ['screenshots', 'logs']:
+                if os.path.isdir(d):
+                    try:
+                        shutil.rmtree(d)
+                        print(f"  {Colors.GREEN}✓ Deleted {d}/{Colors.END}")
+                        deleted_count += 1
+                    except Exception as e:
+                        print(f"  {Colors.RED}✗ Could not delete {d}: {e}{Colors.END}")
+
+        # Reload farming module if farms were cleared
+        if choice in ["1", "2"] and hasattr(self, 'farming'):
+            self.farming.farms = {}
+            self.farming.farm_counter = 0
+
+        # Clear village map cache in memory
+        if choice in ["1", "2"] and hasattr(self, 'village_map'):
+            self.village_map.villages = {}
+
+        print(f"\n{Colors.GREEN}✓ Cleared {deleted_count} items{Colors.END}")
+        if choice in ["1", "3"]:
+            print(f"{Colors.YELLOW}Note: You will need to re-login after clearing session data{Colors.END}")
+
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
     # ==================== AUTO MODE ====================
 
     def auto_mode_menu(self):
@@ -2253,13 +2624,15 @@ class InteractiveBot:
             self.run_auto_mode()
 
     def run_auto_mode(self):
-        """Run bot in automatic mode"""
+        """Run bot in automatic mode with connection resilience"""
         print(f"\n{Colors.GREEN}Starting auto mode...{Colors.END}")
         print(f"{Colors.RED}>>> Press 'Q' or 'S' to stop <<<{Colors.END}\n")
         self.logger.info("Auto mode started")
 
         self.auto_mode = True
         cycle = 0
+        consecutive_errors = 0
+        max_consecutive_errors = 5
 
         # Start key listener thread
         stop_flag = StopFlag()
@@ -2273,47 +2646,74 @@ class InteractiveBot:
                 print(f"\n{Colors.CYAN}--- Cycle {cycle} @ {datetime.now().strftime('%H:%M:%S')} ---{Colors.END}")
                 self.logger.info(f"Auto mode cycle #{cycle} started")
 
-                # Update status
-                self.session.navigate_to_village_overview()
-                self.resources.update_resources()
-                self.resources.update_production()
-                actions_taken.append("status_update")
+                try:
+                    # Update status
+                    self.session.navigate_to_village_overview()
+                    self.resources.update_resources()
+                    self.resources.update_production()
+                    actions_taken.append("status_update")
 
-                # Log resources
-                self.action_log.log_resources(
-                    self.resources.resources,
-                    self.resources.production
-                )
+                    # Log resources
+                    self.action_log.log_resources(
+                        self.resources.resources,
+                        self.resources.production
+                    )
 
-                print(f"Resources: {self.resources.format_resources()}")
+                    print(f"Resources: {self.resources.format_resources()}")
 
-                # Auto actions
-                if self.settings['auto_upgrade'] and not stop_flag.should_stop():
-                    result = self.buildings.auto_upgrade_resources(self.session)
-                    if result:
-                        actions_taken.append("upgrade")
-                        self.logger.info("Auto-upgrade performed")
+                    # Auto actions
+                    if self.settings['auto_upgrade'] and not stop_flag.should_stop():
+                        result = self.buildings.auto_upgrade_resources(self.session)
+                        if result:
+                            actions_taken.append("upgrade")
+                            self.logger.info("Auto-upgrade performed")
 
-                if self.settings['auto_train'] and not stop_flag.should_stop():
-                    result = self.military.auto_train_troops()
-                    if result:
-                        actions_taken.append("train")
-                        self.logger.info("Auto-train performed")
+                        if result:
+                            actions_taken.append("train")
+                            self.logger.info("Auto-train performed")
 
-                if self.settings['notify_attacks'] and not stop_flag.should_stop():
-                    incoming = self.military.check_incoming_attacks()
-                    if incoming:
-                        print(f"{Colors.RED}⚠️  INCOMING ATTACKS: {len(incoming)}{Colors.END}")
-                        self.logger.warning(f"Incoming attacks detected: {len(incoming)}")
-                        for attack in incoming:
-                            self.action_log.log_incoming_attack(
-                                attack.get('attacker', 'Unknown'),
-                                attack.get('arrival_time', 'Unknown')
-                            )
-                        actions_taken.append("attack_detected")
+                    if self.settings['notify_attacks'] and not stop_flag.should_stop():
+                        incoming = self.military.check_incoming_attacks()
+                        if incoming:
+                            print(f"{Colors.RED}⚠️  INCOMING ATTACKS: {len(incoming)}{Colors.END}")
+                            self.logger.warning(f"Incoming attacks detected: {len(incoming)}")
+                            for attack in incoming:
+                                self.action_log.log_incoming_attack(
+                                    attack.get('attacker', 'Unknown'),
+                                    attack.get('arrival_time', 'Unknown')
+                                )
+                            actions_taken.append("attack_detected")
 
-                # Log cycle
-                self.action_log.log_cycle(cycle, actions_taken)
+                    # Log cycle
+                    self.action_log.log_cycle(cycle, actions_taken)
+
+                    # Reset error counter on successful cycle
+                    consecutive_errors = 0
+
+                except Exception as e:
+                    if is_connection_error(e):
+                        consecutive_errors += 1
+                        print(f"\n{Colors.RED}⚠️  Connection error in cycle {cycle}: {str(e)[:80]}{Colors.END}")
+                        self.logger.warning(f"Connection error: {e}")
+
+                        if consecutive_errors >= max_consecutive_errors:
+                            print(f"{Colors.YELLOW}Too many consecutive errors, waiting for connection...{Colors.END}")
+
+                        # Wait for connection to be restored
+                        if self.wait_for_connection(stop_flag):
+                            print(f"{Colors.GREEN}Connection restored, resuming auto mode...{Colors.END}")
+                            continue
+                        else:
+                            print(f"{Colors.RED}Could not restore connection{Colors.END}")
+                            break
+                    else:
+                        # Non-connection error, log and continue
+                        print(f"{Colors.RED}Error in cycle {cycle}: {e}{Colors.END}")
+                        self.logger.error(f"Cycle error: {e}")
+                        consecutive_errors += 1
+                        if consecutive_errors >= max_consecutive_errors:
+                            print(f"{Colors.RED}Too many consecutive errors, stopping{Colors.END}")
+                            break
 
                 print(f"{Colors.RED}[Press Q/S to stop]{Colors.END}")
 
@@ -2596,7 +2996,7 @@ Keep response concise and actionable."""
         self._run_autopilot_loop()
 
     def _run_autopilot_loop(self):
-        """Main auto-pilot execution loop"""
+        """Main auto-pilot execution loop with connection resilience"""
         print(f"\n{Colors.GREEN}{'='*60}{Colors.END}")
         print(f"{Colors.GREEN}   🤖 AI AUTO-PILOT ENGAGED{Colors.END}")
         print(f"{Colors.GREEN}{'='*60}{Colors.END}")
@@ -2607,12 +3007,15 @@ Keep response concise and actionable."""
 
         cycle = 0
         last_farm_time = 0
+        consecutive_errors = 0
+        max_consecutive_errors = 5
         stats = {
             'upgrades': 0,
             'troops_trained': 0,
             'raids_sent': 0,
             'attacks_detected': 0,
             'ai_decisions': 0,
+            'reconnections': 0,
         }
 
         # Load training configs once
@@ -2627,84 +3030,117 @@ Keep response concise and actionable."""
                 print(f"{Colors.CYAN}  CYCLE {cycle} @ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.END}")
                 print(f"{Colors.CYAN}{'─'*60}{Colors.END}")
 
-                # ===== 1. UPDATE STATUS =====
-                print(f"\n{Colors.BOLD}[1/6] 📊 Updating Status...{Colors.END}")
-                self.session.navigate_to_village_overview()
-                self.resources.update_resources()
-                print(f"      Resources: {self.resources.format_resources()}")
-                print(f"      Free Crop: {self.resources.free_crop}")
+                try:
+                    # ===== 1. UPDATE STATUS =====
+                    print(f"\n{Colors.BOLD}[1/6] 📊 Updating Status...{Colors.END}")
+                    self.session.navigate_to_village_overview()
+                    self.resources.update_resources()
+                    print(f"      Resources: {self.resources.format_resources()}")
+                    print(f"      Free Crop: {self.resources.free_crop}")
 
-                if stop_flag.should_stop():
-                    break
+                    if stop_flag.should_stop():
+                        break
 
-                # ===== 2. CHECK ATTACKS =====
-                if self.autopilot_settings['check_attacks']:
-                    print(f"\n{Colors.BOLD}[2/6] 🛡️  Checking for Attacks...{Colors.END}")
-                    incoming = self.military.check_incoming_attacks()
-                    if incoming:
-                        print(f"      {Colors.RED}⚠️  WARNING: {len(incoming)} INCOMING ATTACK(S)!{Colors.END}")
-                        stats['attacks_detected'] += len(incoming)
-                        # AI could decide what to do here
+                    # ===== 2. CHECK ATTACKS =====
+                    if self.autopilot_settings['check_attacks']:
+                        print(f"\n{Colors.BOLD}[2/6] 🛡️  Checking for Attacks...{Colors.END}")
+                        incoming = self.military.check_incoming_attacks()
+                        if incoming:
+                            print(f"      {Colors.RED}⚠️  WARNING: {len(incoming)} INCOMING ATTACK(S)!{Colors.END}")
+                            stats['attacks_detected'] += len(incoming)
+                            # AI could decide what to do here
+                        else:
+                            print(f"      ✓ No incoming attacks")
+
+                    if stop_flag.should_stop():
+                        break
+
+                    # ===== 3. UPGRADE RESOURCES =====
+                    if self.autopilot_settings['upgrade_resources']:
+                        print(f"\n{Colors.BOLD}[3/6] 🔨 Upgrading Resources...{Colors.END}")
+                        upgraded = self._autopilot_upgrade_resources(stop_flag)
+                        stats['upgrades'] += upgraded
+                        print(f"      Upgraded {upgraded} field(s)")
+
+                    if stop_flag.should_stop():
+                        break
+
+                    # ===== 4. UPGRADE BUILDINGS =====
+                    if self.autopilot_settings['upgrade_buildings']:
+                        print(f"\n{Colors.BOLD}[4/6] 🏗️  Upgrading Buildings...{Colors.END}")
+                        upgraded = self._autopilot_upgrade_buildings(stop_flag)
+                        stats['upgrades'] += upgraded
+                        print(f"      Upgraded {upgraded} building(s)")
+
+                    if stop_flag.should_stop():
+                        break
+
+                    # ===== 5. TRAIN TROOPS =====
+                    if self.autopilot_settings['train_troops'] and training_configs:
+                        print(f"\n{Colors.BOLD}[5/6] ⚔️  Training Troops...{Colors.END}")
+                        results = self.military.multi_village_training_cycle(training_configs)
+                        trained = results['total_barracks'] + results['total_stable']
+                        stats['troops_trained'] += trained
+                        print(f"      Trained {trained} troops in {results['villages_trained']} village(s)")
+
+                    if stop_flag.should_stop():
+                        break
+
+                    # ===== 6. SEND FARMS =====
+                    current_time = time.time()
+                    if self.autopilot_settings['send_farms'] and \
+                       (current_time - last_farm_time) >= self.autopilot_settings['farm_interval']:
+                        print(f"\n{Colors.BOLD}[6/6] 🌾 Sending Farm Raids...{Colors.END}")
+                        farm_results = self.farming.send_all_raids()
+                        stats['raids_sent'] += farm_results['sent']
+                        last_farm_time = current_time
+                        print(f"      Sent {farm_results['sent']} raids")
                     else:
-                        print(f"      ✓ No incoming attacks")
+                        next_farm = int(self.autopilot_settings['farm_interval'] - (current_time - last_farm_time))
+                        print(f"\n{Colors.BOLD}[6/6] 🌾 Farm Raids...{Colors.END}")
+                        print(f"      Next raid wave in {next_farm}s")
 
-                if stop_flag.should_stop():
-                    break
+                    # ===== AI ANALYSIS (periodically) =====
+                    if self.autopilot_settings['ai_decisions'] and self._has_ai() and cycle % 10 == 0:
+                        print(f"\n{Colors.BOLD}[AI] 🧠 Running AI Analysis...{Colors.END}")
+                        self._autopilot_ai_decision(stats)
+                        stats['ai_decisions'] += 1
 
-                # ===== 3. UPGRADE RESOURCES =====
-                if self.autopilot_settings['upgrade_resources']:
-                    print(f"\n{Colors.BOLD}[3/6] 🔨 Upgrading Resources...{Colors.END}")
-                    upgraded = self._autopilot_upgrade_resources(stop_flag)
-                    stats['upgrades'] += upgraded
-                    print(f"      Upgraded {upgraded} field(s)")
+                    # ===== CYCLE SUMMARY =====
+                    print(f"\n{Colors.GREEN}✓ Cycle {cycle} complete{Colors.END}")
+                    print(f"  Session stats: {stats['upgrades']} upgrades, {stats['troops_trained']} troops, {stats['raids_sent']} raids")
+                    if stats['reconnections'] > 0:
+                        print(f"  Reconnections: {stats['reconnections']}")
 
-                if stop_flag.should_stop():
-                    break
+                    # Reset error counter on successful cycle
+                    consecutive_errors = 0
 
-                # ===== 4. UPGRADE BUILDINGS =====
-                if self.autopilot_settings['upgrade_buildings']:
-                    print(f"\n{Colors.BOLD}[4/6] 🏗️  Upgrading Buildings...{Colors.END}")
-                    upgraded = self._autopilot_upgrade_buildings(stop_flag)
-                    stats['upgrades'] += upgraded
-                    print(f"      Upgraded {upgraded} building(s)")
+                except Exception as e:
+                    if is_connection_error(e):
+                        consecutive_errors += 1
+                        stats['reconnections'] += 1
+                        print(f"\n{Colors.RED}⚠️  Connection error in cycle {cycle}: {str(e)[:80]}{Colors.END}")
+                        self.logger.warning(f"Auto-pilot connection error: {e}")
 
-                if stop_flag.should_stop():
-                    break
+                        # Wait for connection to be restored
+                        if self.wait_for_connection(stop_flag):
+                            print(f"{Colors.GREEN}Connection restored, resuming auto-pilot...{Colors.END}")
+                            continue
+                        else:
+                            print(f"{Colors.RED}Could not restore connection, stopping auto-pilot{Colors.END}")
+                            break
+                    else:
+                        # Non-connection error
+                        consecutive_errors += 1
+                        print(f"\n{Colors.RED}Error in cycle {cycle}: {e}{Colors.END}")
+                        self.logger.error(f"Auto-pilot error: {e}")
 
-                # ===== 5. TRAIN TROOPS =====
-                if self.autopilot_settings['train_troops'] and training_configs:
-                    print(f"\n{Colors.BOLD}[5/6] ⚔️  Training Troops...{Colors.END}")
-                    results = self.military.multi_village_training_cycle(training_configs)
-                    trained = results['total_barracks'] + results['total_stable']
-                    stats['troops_trained'] += trained
-                    print(f"      Trained {trained} troops in {results['villages_trained']} village(s)")
+                        if consecutive_errors >= max_consecutive_errors:
+                            print(f"{Colors.RED}Too many consecutive errors, stopping auto-pilot{Colors.END}")
+                            break
+                        else:
+                            print(f"{Colors.YELLOW}Continuing despite error ({consecutive_errors}/{max_consecutive_errors})...{Colors.END}")
 
-                if stop_flag.should_stop():
-                    break
-
-                # ===== 6. SEND FARMS =====
-                current_time = time.time()
-                if self.autopilot_settings['send_farms'] and \
-                   (current_time - last_farm_time) >= self.autopilot_settings['farm_interval']:
-                    print(f"\n{Colors.BOLD}[6/6] 🌾 Sending Farm Raids...{Colors.END}")
-                    farm_results = self.farming.send_all_raids()
-                    stats['raids_sent'] += farm_results['sent']
-                    last_farm_time = current_time
-                    print(f"      Sent {farm_results['sent']} raids")
-                else:
-                    next_farm = int(self.autopilot_settings['farm_interval'] - (current_time - last_farm_time))
-                    print(f"\n{Colors.BOLD}[6/6] 🌾 Farm Raids...{Colors.END}")
-                    print(f"      Next raid wave in {next_farm}s")
-
-                # ===== AI ANALYSIS (periodically) =====
-                if self.autopilot_settings['ai_decisions'] and self._has_ai() and cycle % 10 == 0:
-                    print(f"\n{Colors.BOLD}[AI] 🧠 Running AI Analysis...{Colors.END}")
-                    self._autopilot_ai_decision(stats)
-                    stats['ai_decisions'] += 1
-
-                # ===== CYCLE SUMMARY =====
-                print(f"\n{Colors.GREEN}✓ Cycle {cycle} complete{Colors.END}")
-                print(f"  Session stats: {stats['upgrades']} upgrades, {stats['troops_trained']} troops, {stats['raids_sent']} raids")
                 print(f"{Colors.RED}  [Press Q/S to stop]{Colors.END}")
 
                 # Wait for next cycle
@@ -2718,9 +3154,6 @@ Keep response concise and actionable."""
 
         except KeyboardInterrupt:
             stop_flag.stop()
-        except Exception as e:
-            print(f"\n{Colors.RED}Auto-Pilot Error: {e}{Colors.END}")
-            self.logger.error(f"Auto-pilot error: {e}")
 
         # Final summary
         print(f"\n{Colors.YELLOW}{'='*60}{Colors.END}")

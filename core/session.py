@@ -26,6 +26,22 @@ class TravianSession:
             self.browser.navigate_to(config.base_url)
             time.sleep(1)
 
+            # Zoom to 200% for better captcha reading
+            print("🔍 Zooming to 200% for better captcha visibility...")
+            try:
+                self.browser.execute_script("document.body.style.zoom = '200%'")
+            except:
+                # Fallback: use CSS transform for Firefox
+                try:
+                    self.browser.execute_script(
+                        "document.body.style.transform = 'scale(2)'; "
+                        "document.body.style.transformOrigin = 'top left'; "
+                        "document.body.style.width = '50%';"
+                    )
+                except:
+                    print("  ⚠️ Could not zoom page")
+            time.sleep(0.5)
+
             # Try to auto-fill username and password
             print("📝 Auto-filling credentials...")
 
@@ -119,6 +135,21 @@ class TravianSession:
                 if self.verify_login():
                     self.is_logged_in = True
                     print("\n✓ Login successful!")
+
+                    # Reset zoom back to 100%
+                    print("🔍 Resetting zoom to 100%...")
+                    try:
+                        self.browser.execute_script("document.body.style.zoom = '100%'")
+                    except:
+                        try:
+                            self.browser.execute_script(
+                                "document.body.style.transform = 'scale(1)'; "
+                                "document.body.style.transformOrigin = 'top left'; "
+                                "document.body.style.width = '100%';"
+                            )
+                        except:
+                            pass
+
                     return True
 
                 time.sleep(2)
