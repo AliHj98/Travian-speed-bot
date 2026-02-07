@@ -1,2 +1,0 @@
-2026-02-02 23:58:52 | INFO     | LOGIN | SUCCESS | anonzvader
-2026-02-03 00:03:50 | ERROR    | ERROR | main_menu | HTTPConnectionPool(host='localhost', port=56014): Max retries exceeded with url: /session/d7e9d9c7-ebfa-440d-bd5e-f29fb7bd2d35/url (Caused by NewConnectionError("HTTPConnection(host='localhost', port=56014): Failed to establish a new connection: [Errno 111] Connection refused"))

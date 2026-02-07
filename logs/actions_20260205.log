@@ -1,8 +1,0 @@
-2026-02-05 19:19:01 | INFO     | LOGIN | FAILED | anonzvader
-2026-02-05 19:29:44 | INFO     | LOGIN | SUCCESS | anonzvader
-2026-02-05 19:35:06 | INFO     | LOGIN | SUCCESS | anonzvader
-2026-02-05 19:45:25 | INFO     | LOGIN | SUCCESS | anonzvader
-2026-02-05 19:55:05 | INFO     | LOGIN | SUCCESS | anonzvader
-2026-02-05 20:22:42 | INFO     | LOGIN | SUCCESS | anonzvader
-2026-02-05 20:28:44 | ERROR    | ERROR | main_menu | HTTPConnectionPool(host='localhost', port=46663): Max retries exceeded with url: /session/aeb9e880-89e2-4abb-8e50-7f1569e39937/elements (Caused by NewConnectionError("HTTPConnection(host='localhost', port=46663): Failed to establish a new connection: [Errno 111] Connection refused"))
-2026-02-05 20:34:42 | INFO     | LOGIN | SUCCESS | anonzvader

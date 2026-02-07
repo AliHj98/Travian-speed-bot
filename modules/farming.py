@@ -48,6 +48,15 @@ class FarmTarget:
     next_raid_at: float = 0  # timestamp when next raid should fire
 
 
+@dataclass
+class FarmList:
+    """A named farm list with its own troop defaults"""
+    name: str
+    default_troops: Dict[str, int] = field(default_factory=dict)
+    enabled: bool = True
+    farms: Dict[int, FarmTarget] = field(default_factory=dict)
+
+
 class FarmListManager:
     """Manages farm lists and automated farming"""
 
@@ -98,43 +107,128 @@ class FarmListManager:
 
     def __init__(self, browser: BrowserManager):
         self.browser = browser
-        self.farms: Dict[int, FarmTarget] = {}
+        self.farm_lists: Dict[str, FarmList] = {}
+        self.active_list_name: str = 'default'
         self.farm_counter = 0
-        self.default_troops: Dict[str, int] = {}  # Default troops for new farms
+        self.default_troops: Dict[str, int] = {}  # Global default troops
         self.raid_interval = 300  # Seconds between raid cycles
         self.tribe: str = 'romans'  # Default tribe, used for speed lookups
         self.server_speed: int = 1  # Server speed multiplier
         self.home_x: int = 0  # Home village coordinates
         self.home_y: int = 0
+        self.scan_history: Dict = {'scanned_coords': []}
         self.load_farms()
 
+    # ==================== BACKWARDS COMPATIBILITY ====================
+
+    @property
+    def farms(self) -> Dict[int, FarmTarget]:
+        """Backwards-compatible access to farms in the active list"""
+        if self.active_list_name not in self.farm_lists:
+            self.farm_lists[self.active_list_name] = FarmList(name=self.active_list_name)
+        return self.farm_lists[self.active_list_name].farms
+
+    @farms.setter
+    def farms(self, value: Dict[int, FarmTarget]):
+        """Backwards-compatible setter for farms"""
+        if self.active_list_name not in self.farm_lists:
+            self.farm_lists[self.active_list_name] = FarmList(name=self.active_list_name)
+        self.farm_lists[self.active_list_name].farms = value
+
+    # ==================== LOAD / SAVE ====================
+
+    def _migrate_v1_to_v2(self, data: dict) -> dict:
+        """Migrate v1 flat farm list format to v2 multi-list format"""
+        farms_list = data.get('farms', [])
+        default_troops = data.get('default_troops', {})
+
+        v2_data = {
+            'version': 2,
+            'counter': data.get('counter', 0),
+            'default_troops': default_troops,
+            'raid_interval': data.get('raid_interval', 300),
+            'tribe': data.get('tribe', 'romans'),
+            'server_speed': data.get('server_speed', 1),
+            'home_x': data.get('home_x', 0),
+            'home_y': data.get('home_y', 0),
+            'active_list': 'default',
+            'farm_lists': {
+                'default': {
+                    'name': 'default',
+                    'default_troops': default_troops,
+                    'enabled': True,
+                    'farms': farms_list,
+                }
+            },
+            'scan_history': {'scanned_coords': []},
+        }
+        print("  Migrated farm_list.json from v1 to v2 format")
+        return v2_data
+
     def load_farms(self):
-        """Load farm list from file"""
+        """Load farm lists from file"""
         try:
             if os.path.exists(self.FARM_FILE):
                 with open(self.FARM_FILE, 'r') as f:
                     data = json.load(f)
-                    self.farm_counter = data.get('counter', 0)
-                    self.default_troops = data.get('default_troops', {})
-                    self.raid_interval = data.get('raid_interval', 300)
-                    self.tribe = data.get('tribe', 'romans')
-                    self.server_speed = data.get('server_speed', 1)
-                    self.home_x = data.get('home_x', 0)
-                    self.home_y = data.get('home_y', 0)
 
-                    for farm_data in data.get('farms', []):
+                # Check version and migrate if needed
+                version = data.get('version', 1)
+                if version < 2:
+                    data = self._migrate_v1_to_v2(data)
+                    # Save migrated data immediately
+                    with open(self.FARM_FILE, 'w') as f:
+                        json.dump(data, f, indent=2)
+
+                self.farm_counter = data.get('counter', 0)
+                self.default_troops = data.get('default_troops', {})
+                self.raid_interval = data.get('raid_interval', 300)
+                self.tribe = data.get('tribe', 'romans')
+                self.server_speed = data.get('server_speed', 1)
+                self.home_x = data.get('home_x', 0)
+                self.home_y = data.get('home_y', 0)
+                self.active_list_name = data.get('active_list', 'default')
+                self.scan_history = data.get('scan_history', {'scanned_coords': []})
+
+                # Load farm lists
+                self.farm_lists = {}
+                for list_name, list_data in data.get('farm_lists', {}).items():
+                    farm_list = FarmList(
+                        name=list_data.get('name', list_name),
+                        default_troops=list_data.get('default_troops', {}),
+                        enabled=list_data.get('enabled', True),
+                    )
+                    for farm_data in list_data.get('farms', []):
                         farm = FarmTarget(**farm_data)
-                        self.farms[farm.id] = farm
+                        farm_list.farms[farm.id] = farm
+                    self.farm_lists[list_name] = farm_list
 
-                print(f"✓ Loaded {len(self.farms)} farm(s)")
+                # Ensure active list exists
+                if self.active_list_name not in self.farm_lists:
+                    self.farm_lists[self.active_list_name] = FarmList(name=self.active_list_name)
+
+                total = sum(len(fl.farms) for fl in self.farm_lists.values())
+                lists_count = len(self.farm_lists)
+                print(f"✓ Loaded {total} farm(s) in {lists_count} list(s) [active: {self.active_list_name}]")
         except Exception as e:
             print(f"Could not load farms: {e}")
-            self.farms = {}
+            self.farm_lists = {'default': FarmList(name='default')}
+            self.active_list_name = 'default'
 
     def save_farms(self):
-        """Save farm list to file"""
+        """Save farm lists to file"""
         try:
+            farm_lists_data = {}
+            for list_name, farm_list in self.farm_lists.items():
+                farm_lists_data[list_name] = {
+                    'name': farm_list.name,
+                    'default_troops': farm_list.default_troops,
+                    'enabled': farm_list.enabled,
+                    'farms': [asdict(farm) for farm in farm_list.farms.values()],
+                }
+
             data = {
+                'version': 2,
                 'counter': self.farm_counter,
                 'default_troops': self.default_troops,
                 'raid_interval': self.raid_interval,
@@ -142,15 +236,128 @@ class FarmListManager:
                 'server_speed': self.server_speed,
                 'home_x': self.home_x,
                 'home_y': self.home_y,
-                'farms': [asdict(farm) for farm in self.farms.values()]
+                'active_list': self.active_list_name,
+                'farm_lists': farm_lists_data,
+                'scan_history': self.scan_history,
             }
             with open(self.FARM_FILE, 'w') as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
             print(f"Could not save farms: {e}")
 
+    # ==================== FARM LIST MANAGEMENT ====================
+
+    def create_farm_list(self, name: str, default_troops: Dict[str, int] = None) -> bool:
+        """Create a new named farm list"""
+        if name in self.farm_lists:
+            print(f"Farm list '{name}' already exists")
+            return False
+        self.farm_lists[name] = FarmList(
+            name=name,
+            default_troops=default_troops or self.default_troops.copy(),
+        )
+        self.save_farms()
+        print(f"✓ Farm list '{name}' created")
+        return True
+
+    def delete_farm_list(self, name: str) -> bool:
+        """Delete a farm list"""
+        if name not in self.farm_lists:
+            print(f"Farm list '{name}' not found")
+            return False
+        if name == self.active_list_name:
+            print(f"Cannot delete the active list. Switch to another list first.")
+            return False
+        count = len(self.farm_lists[name].farms)
+        del self.farm_lists[name]
+        self.save_farms()
+        print(f"✓ Farm list '{name}' deleted ({count} farms removed)")
+        return True
+
+    def switch_active_list(self, name: str) -> bool:
+        """Switch the active farm list"""
+        if name not in self.farm_lists:
+            print(f"Farm list '{name}' not found")
+            return False
+        self.active_list_name = name
+        self.save_farms()
+        print(f"✓ Switched to farm list '{name}' ({len(self.farms)} farms)")
+        return True
+
+    def get_farm_list_names(self) -> List[str]:
+        """Get all farm list names"""
+        return list(self.farm_lists.keys())
+
+    def add_farm_to_list(self, list_name: str, name: str, x: int, y: int,
+                         troops: Dict[str, int] = None, notes: str = "") -> int:
+        """Add a farm to a specific list"""
+        if list_name not in self.farm_lists:
+            print(f"Farm list '{list_name}' not found")
+            return -1
+
+        farm_list = self.farm_lists[list_name]
+        list_troops = troops or farm_list.default_troops.copy() or self.default_troops.copy()
+
+        self.farm_counter += 1
+        farm = FarmTarget(
+            id=self.farm_counter,
+            name=name,
+            x=x,
+            y=y,
+            troops=list_troops,
+            notes=notes,
+        )
+        farm_list.farms[farm.id] = farm
+        self.save_farms()
+        return farm.id
+
+    def is_coordinate_in_any_list(self, x: int, y: int) -> Optional[str]:
+        """Check if coordinates exist in any farm list. Returns list name or None."""
+        for list_name, farm_list in self.farm_lists.items():
+            for farm in farm_list.farms.values():
+                if farm.x == x and farm.y == y:
+                    return list_name
+        return None
+
+    def move_farm_to_list(self, farm_id: int, from_list: str, to_list: str) -> bool:
+        """Move a farm from one list to another"""
+        if from_list not in self.farm_lists or to_list not in self.farm_lists:
+            print(f"One or both lists not found")
+            return False
+        if farm_id not in self.farm_lists[from_list].farms:
+            print(f"Farm #{farm_id} not found in '{from_list}'")
+            return False
+
+        farm = self.farm_lists[from_list].farms.pop(farm_id)
+        self.farm_lists[to_list].farms[farm_id] = farm
+        self.save_farms()
+        print(f"✓ Moved farm #{farm_id} from '{from_list}' to '{to_list}'")
+        return True
+
+    def print_all_farm_lists(self):
+        """Print summary of all farm lists"""
+        if not self.farm_lists:
+            print("No farm lists")
+            return
+
+        print(f"\n{'List Name':<20} {'Farms':<8} {'Enabled':<10} {'Status':<10} {'Default Troops'}")
+        print("-" * 80)
+
+        for name, farm_list in self.farm_lists.items():
+            active = "* ACTIVE" if name == self.active_list_name else ""
+            enabled_count = len([f for f in farm_list.farms.values() if f.enabled])
+            total = len(farm_list.farms)
+            list_enabled = "ON" if farm_list.enabled else "OFF"
+            troops_str = str(farm_list.default_troops) if farm_list.default_troops else "(global)"
+            print(f"{name:<20} {total:<8} {enabled_count}/{total:<8} {list_enabled:<10} {troops_str} {active}")
+
+        total_farms = sum(len(fl.farms) for fl in self.farm_lists.values())
+        print(f"\nTotal: {len(self.farm_lists)} lists, {total_farms} farms")
+
+    # ==================== EXISTING METHODS (unchanged interface) ====================
+
     def add_farm(self, name: str, x: int, y: int, troops: Dict[str, int] = None, notes: str = "") -> int:
-        """Add a new farm target"""
+        """Add a new farm target to the active list"""
         self.farm_counter += 1
         farm = FarmTarget(
             id=self.farm_counter,
@@ -166,7 +373,7 @@ class FarmListManager:
         return farm.id
 
     def remove_farm(self, farm_id: int) -> bool:
-        """Remove a farm from the list"""
+        """Remove a farm from the active list"""
         if farm_id in self.farms:
             del self.farms[farm_id]
             self.save_farms()
@@ -194,11 +401,11 @@ class FarmListManager:
         print(f"✓ Default troops set: {troops}")
 
     def get_all_farms(self) -> List[FarmTarget]:
-        """Get all farms"""
+        """Get all farms in the active list"""
         return list(self.farms.values())
 
     def get_enabled_farms(self) -> List[FarmTarget]:
-        """Get only enabled farms"""
+        """Get only enabled farms in the active list"""
         return [f for f in self.farms.values() if f.enabled]
 
     def estimate_travel_time(self, farm: FarmTarget) -> int:
@@ -688,13 +895,14 @@ class FarmListManager:
         return potential_farms
 
     def print_farm_list(self):
-        """Print the farm list"""
+        """Print the farm list for the active list"""
         farms = self.get_all_farms()
 
         if not farms:
-            print("No farms in the list")
+            print(f"No farms in list '{self.active_list_name}'")
             return
 
+        print(f"\n  Active list: {self.active_list_name}")
         print(f"\n{'ID':<4} {'Status':<8} {'Name':<20} {'Coords':<12} {'Raids':<6} {'Last Raid':<10}")
         print("-" * 70)
 

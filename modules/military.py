@@ -1069,6 +1069,16 @@ class MilitaryManager:
 
         return config_obj
 
+    def _navigate_to_building_in_village(self, gid: int, village_id: str) -> bool:
+        """Navigate to a building type in a specific village, including village ID in URL"""
+        self.building_cache.clear()
+        slot = self.find_building_slot(gid)
+        if slot:
+            self.browser.navigate_to(f"{config.base_url}/build.php?id={slot}&newdid={village_id}")
+            time.sleep(0.5)
+            return True
+        return False
+
     def train_in_village(self, config_obj: VillageTrainingConfig) -> Dict:
         """Train troops in a single village based on its config"""
         result = {
@@ -1081,13 +1091,16 @@ class MilitaryManager:
         if not config_obj.enabled:
             return result
 
-        # Switch to village
-        self.switch_to_village(config_obj.village_id)
+        # Switch to village and verify
+        if not self.switch_to_village(config_obj.village_id):
+            print(f"  ✗ Failed to switch to {config_obj.village_name}, skipping")
+            return result
         self.building_cache.clear()
+        time.sleep(0.5)
 
         # Train in barracks
         if config_obj.train_barracks and config_obj.barracks_troop:
-            if self.navigate_to_barracks():
+            if self._navigate_to_building_in_village(self.BARRACKS_GID, config_obj.village_id):
                 available = self.get_available_troops_to_train()
 
                 for troop in available:
@@ -1097,10 +1110,12 @@ class MilitaryManager:
                                 result['barracks_trained'] = troop['max']
                                 result['success'] = True
                         break
+            else:
+                print(f"  Barracks not found in {config_obj.village_name}")
 
-        # Train in stable
+        # Train in stable — re-switch to ensure village context after barracks form submit
         if config_obj.train_stable and config_obj.stable_troop:
-            if self.navigate_to_stable():
+            if self._navigate_to_building_in_village(self.STABLE_GID, config_obj.village_id):
                 available = self.get_available_troops_to_train()
 
                 for troop in available:
@@ -1110,6 +1125,8 @@ class MilitaryManager:
                                 result['stable_trained'] = troop['max']
                                 result['success'] = True
                         break
+            else:
+                print(f"  Stable not found in {config_obj.village_name}")
 
         return result
 
@@ -1121,11 +1138,10 @@ class MilitaryManager:
             'total_stable': 0,
         }
 
-        for vid, cfg in configs.items():
-            if not cfg.enabled:
-                continue
+        enabled_configs = [(vid, cfg) for vid, cfg in configs.items() if cfg.enabled]
 
-            print(f"\n📍 {cfg.village_name}:")
+        for i, (vid, cfg) in enumerate(enabled_configs):
+            print(f"\n📍 [{i+1}/{len(enabled_configs)}] {cfg.village_name}:")
             village_result = self.train_in_village(cfg)
 
             if village_result['success']:
@@ -1311,6 +1327,102 @@ class MilitaryManager:
                 time.sleep(1)
 
         return total
+
+    def upgrade_smithy_in_village(self, village_id: str, village_name: str) -> int:
+        """Upgrade all available smithy troops in a specific village. Returns upgrade count."""
+        if not self.switch_to_village(village_id):
+            print(f"  ✗ Failed to switch to {village_name}")
+            return 0
+        self.building_cache.clear()
+        time.sleep(0.3)
+
+        if not self._navigate_to_building_in_village(self.SMITHY_GID, village_id):
+            print(f"  No smithy in {village_name}")
+            return 0
+
+        count = 0
+        while True:
+            time.sleep(0.5)
+            buttons = self._find_action_buttons()
+            if not buttons:
+                break
+            try:
+                buttons[0].click()
+                count += 1
+                print(f"  ✓ Smithy upgrade #{count} queued")
+                time.sleep(1)
+                # Re-navigate to smithy to check for more
+                self._navigate_to_building_in_village(self.SMITHY_GID, village_id)
+            except Exception as e:
+                print(f"  ✗ Could not click upgrade: {e}")
+                break
+
+        return count
+
+    def multi_village_smithy_cycle(self, villages: list) -> Dict:
+        """Run one smithy upgrade cycle across all villages.
+        villages: list of dicts with 'id' and 'name' keys."""
+        results = {'villages_processed': 0, 'total_upgrades': 0}
+
+        for i, village in enumerate(villages):
+            print(f"\n📍 [{i+1}/{len(villages)}] {village['name']}:")
+            upgrades = self.upgrade_smithy_in_village(village['id'], village['name'])
+            results['villages_processed'] += 1
+            results['total_upgrades'] += upgrades
+            if upgrades == 0:
+                print(f"   No upgrades available")
+            else:
+                print(f"   {upgrades} upgrade(s) queued")
+
+        return results
+
+    def research_academy_in_village(self, village_id: str, village_name: str) -> int:
+        """Research all available troops in a specific village's academy. Returns research count."""
+        if not self.switch_to_village(village_id):
+            print(f"  ✗ Failed to switch to {village_name}")
+            return 0
+        self.building_cache.clear()
+        time.sleep(0.3)
+
+        if not self._navigate_to_building_in_village(self.ACADEMY_GID, village_id):
+            print(f"  No academy in {village_name}")
+            return 0
+
+        count = 0
+        while True:
+            time.sleep(0.5)
+            buttons = self._find_action_buttons()
+            if not buttons:
+                break
+            try:
+                buttons[0].click()
+                count += 1
+                print(f"  ✓ Academy research #{count} queued")
+                time.sleep(1)
+                # Re-navigate to academy to check for more
+                self._navigate_to_building_in_village(self.ACADEMY_GID, village_id)
+            except Exception as e:
+                print(f"  ✗ Could not click research: {e}")
+                break
+
+        return count
+
+    def multi_village_academy_cycle(self, villages: list) -> Dict:
+        """Run one academy research cycle across all villages.
+        villages: list of dicts with 'id' and 'name' keys."""
+        results = {'villages_processed': 0, 'total_researches': 0}
+
+        for i, village in enumerate(villages):
+            print(f"\n📍 [{i+1}/{len(villages)}] {village['name']}:")
+            researches = self.research_academy_in_village(village['id'], village['name'])
+            results['villages_processed'] += 1
+            results['total_researches'] += researches
+            if researches == 0:
+                print(f"   No research available")
+            else:
+                print(f"   {researches} research(es) queued")
+
+        return results
 
     def start_celebration(self, big: bool = True) -> bool:
         """Start a celebration in the town hall if available.

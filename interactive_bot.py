@@ -31,6 +31,8 @@ from modules.village_map import VillageMap
 from modules.village_cycler import VillageCycler
 from modules.task_queue import TaskExecutor, TaskQueue, TaskStatus
 from modules.farming import FarmListManager
+from modules.farm_finder import FarmFinder, ScanFilter
+from modules.reports import ReportManager, OUTCOME_LABELS
 from utils.helpers import Logger, ActionLogger, setup_logger
 
 
@@ -213,6 +215,8 @@ class InteractiveBot:
             self.village_map = VillageMap(self.browser)
             self.village_cycler = VillageCycler(self.browser)
             self.farming = FarmListManager(self.browser)
+            self.farm_finder = FarmFinder(self.browser, self.farming)
+            self.reports = ReportManager(self.browser)
             self.task_executor = TaskExecutor(self)
 
             print(f"{Colors.GREEN}✓ Bot initialized{Colors.END}")
@@ -1256,6 +1260,8 @@ class InteractiveBot:
                 "🔨 AUTO SMITHY (upgrade all troops)",
                 "🔬 AUTO ACADEMY (research all)",
                 "🎉 AUTO CELEBRATIONS (town hall)",
+                "🌍🔨 MULTI-VILLAGE SMITHY (all villages)",
+                "🌍🔬 MULTI-VILLAGE ACADEMY (all villages)",
             ])
 
             choice = get_input()
@@ -1286,6 +1292,10 @@ class InteractiveBot:
                 self.auto_academy()
             elif choice == "12":
                 self.auto_celebrations()
+            elif choice == "13":
+                self.multi_village_smithy()
+            elif choice == "14":
+                self.multi_village_academy()
 
     def auto_smithy(self):
         """Auto upgrade all troops in the smithy"""
@@ -1385,6 +1395,150 @@ class InteractiveBot:
 
         print(f"\n{Colors.YELLOW}Auto-celebrations stopped{Colors.END}")
         print(f"Total celebrations started: {total}")
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def multi_village_smithy(self):
+        """Upgrade smithy troops across all villages"""
+        clear_screen()
+        print_header("MULTI-VILLAGE SMITHY")
+
+        print(f"{Colors.YELLOW}Scanning for villages...{Colors.END}\n")
+        villages = self.village_cycler.get_all_villages(force_refresh=True)
+
+        if not villages:
+            print(f"{Colors.RED}No villages found{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        print(f"{Colors.GREEN}Found {len(villages)} village(s):{Colors.END}")
+        for i, v in enumerate(villages, 1):
+            print(f"  {i}. {v['name']}")
+
+        print(f"\n{Colors.YELLOW}Will upgrade smithy troops in each village sequentially.{Colors.END}")
+
+        mode = get_input("\n1. Run once  2. Continuous (auto)  (default 1): ")
+        if mode == '2':
+            interval = get_input("Interval between cycles in seconds (default 60): ")
+            try:
+                interval = int(interval) if interval else 60
+            except ValueError:
+                interval = 60
+
+            confirm = get_input(f"\nStart auto multi-village smithy every {interval}s? (y/n): ")
+            if confirm.lower() != 'y':
+                return
+
+            stop_flag = StopFlag()
+            listener_thread = Thread(target=key_listener, args=(stop_flag,), daemon=True)
+            listener_thread.start()
+
+            print(f"\n{Colors.GREEN}Multi-village smithy running...{Colors.END}")
+            print(f"{Colors.RED}>>> Press 'Q'/'S' to stop <<<{Colors.END}")
+            print("=" * 50)
+
+            total_upgrades = 0
+            cycles = 0
+            try:
+                while not stop_flag.should_stop():
+                    cycles += 1
+                    print(f"\n{Colors.CYAN}--- Smithy Cycle {cycles} @ {datetime.now().strftime('%H:%M:%S')} ---{Colors.END}")
+                    results = self.military.multi_village_smithy_cycle(villages)
+                    total_upgrades += results['total_upgrades']
+                    print(f"\nCycle upgrades: {results['total_upgrades']} | Total: {total_upgrades}")
+
+                    if stop_flag.should_stop():
+                        break
+
+                    print(f"Next cycle in {interval}s... {Colors.RED}[Q/S=stop]{Colors.END}")
+                    for _ in range(interval):
+                        if stop_flag.should_stop():
+                            break
+                        time.sleep(1)
+            except KeyboardInterrupt:
+                stop_flag.stop()
+
+            print(f"\n{Colors.YELLOW}Multi-village smithy stopped{Colors.END}")
+            print(f"Total cycles: {cycles} | Total upgrades: {total_upgrades}")
+        else:
+            confirm = get_input(f"\nRun smithy upgrades in {len(villages)} village(s)? (y/n): ")
+            if confirm.lower() != 'y':
+                return
+
+            results = self.military.multi_village_smithy_cycle(villages)
+            print(f"\n{Colors.GREEN}Done! {results['total_upgrades']} upgrade(s) queued across {results['villages_processed']} village(s){Colors.END}")
+
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def multi_village_academy(self):
+        """Research academy troops across all villages"""
+        clear_screen()
+        print_header("MULTI-VILLAGE ACADEMY")
+
+        print(f"{Colors.YELLOW}Scanning for villages...{Colors.END}\n")
+        villages = self.village_cycler.get_all_villages(force_refresh=True)
+
+        if not villages:
+            print(f"{Colors.RED}No villages found{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        print(f"{Colors.GREEN}Found {len(villages)} village(s):{Colors.END}")
+        for i, v in enumerate(villages, 1):
+            print(f"  {i}. {v['name']}")
+
+        print(f"\n{Colors.YELLOW}Will research academy troops in each village sequentially.{Colors.END}")
+
+        mode = get_input("\n1. Run once  2. Continuous (auto)  (default 1): ")
+        if mode == '2':
+            interval = get_input("Interval between cycles in seconds (default 60): ")
+            try:
+                interval = int(interval) if interval else 60
+            except ValueError:
+                interval = 60
+
+            confirm = get_input(f"\nStart auto multi-village academy every {interval}s? (y/n): ")
+            if confirm.lower() != 'y':
+                return
+
+            stop_flag = StopFlag()
+            listener_thread = Thread(target=key_listener, args=(stop_flag,), daemon=True)
+            listener_thread.start()
+
+            print(f"\n{Colors.GREEN}Multi-village academy running...{Colors.END}")
+            print(f"{Colors.RED}>>> Press 'Q'/'S' to stop <<<{Colors.END}")
+            print("=" * 50)
+
+            total_researches = 0
+            cycles = 0
+            try:
+                while not stop_flag.should_stop():
+                    cycles += 1
+                    print(f"\n{Colors.CYAN}--- Academy Cycle {cycles} @ {datetime.now().strftime('%H:%M:%S')} ---{Colors.END}")
+                    results = self.military.multi_village_academy_cycle(villages)
+                    total_researches += results['total_researches']
+                    print(f"\nCycle researches: {results['total_researches']} | Total: {total_researches}")
+
+                    if stop_flag.should_stop():
+                        break
+
+                    print(f"Next cycle in {interval}s... {Colors.RED}[Q/S=stop]{Colors.END}")
+                    for _ in range(interval):
+                        if stop_flag.should_stop():
+                            break
+                        time.sleep(1)
+            except KeyboardInterrupt:
+                stop_flag.stop()
+
+            print(f"\n{Colors.YELLOW}Multi-village academy stopped{Colors.END}")
+            print(f"Total cycles: {cycles} | Total researches: {total_researches}")
+        else:
+            confirm = get_input(f"\nRun academy research in {len(villages)} village(s)? (y/n): ")
+            if confirm.lower() != 'y':
+                return
+
+            results = self.military.multi_village_academy_cycle(villages)
+            print(f"\n{Colors.GREEN}Done! {results['total_researches']} research(es) queued across {results['villages_processed']} village(s){Colors.END}")
+
         input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
 
     def view_troops(self):
@@ -1629,9 +1783,9 @@ class InteractiveBot:
         clear_screen()
         print_header("MULTI-VILLAGE TRAINING SETUP")
 
-        # Get all villages
+        # Get all villages (use village_cycler which reliably finds all villages)
         print(f"{Colors.YELLOW}Scanning for villages...{Colors.END}\n")
-        villages = self.military.get_all_villages()
+        villages = self.village_cycler.get_all_villages(force_refresh=True)
 
         if not villages:
             print(f"{Colors.RED}No villages found{Colors.END}")
@@ -1927,7 +2081,8 @@ class InteractiveBot:
             # Show farm count
             total = len(self.farming.get_all_farms())
             enabled = len(self.farming.get_enabled_farms())
-            print(f"{Colors.GREEN}Farms: {enabled}/{total} enabled{Colors.END}\n")
+            lists_count = len(self.farming.farm_lists)
+            print(f"{Colors.GREEN}Active list: {self.farming.active_list_name} | Farms: {enabled}/{total} enabled | Lists: {lists_count}{Colors.END}\n")
 
             print_menu("Farming Options", [
                 "📋 View farm list",
@@ -1942,6 +2097,15 @@ class InteractiveBot:
                 "🔄 AUTO FARM (continuous)",
                 "⏱️  AUTO RAID (travel-time based)",
                 "📊 Farm statistics",
+                "--- Farm Lists ---",
+                "📋 View all farm lists",
+                "➕ Create new farm list",
+                "🔄 Switch active farm list",
+                "❌ Delete farm list",
+                "↔️  Move farm to another list",
+                "--- Farm Finder ---",
+                "🔍 Scan for farms (auto finder)",
+                "🗑️  Clear scan history",
             ])
 
             choice = get_input()
@@ -1972,6 +2136,24 @@ class InteractiveBot:
                 self.auto_raid_travel_time()
             elif choice == "12":
                 self.farm_statistics()
+            elif choice == "13":
+                pass  # separator
+            elif choice == "14":
+                self.view_all_farm_lists()
+            elif choice == "15":
+                self.create_farm_list()
+            elif choice == "16":
+                self.switch_farm_list()
+            elif choice == "17":
+                self.delete_farm_list()
+            elif choice == "18":
+                self.move_farm_to_list()
+            elif choice == "19":
+                pass  # separator
+            elif choice == "20":
+                self.scan_for_farms()
+            elif choice == "21":
+                self.clear_scan_history()
 
     def view_farm_list(self):
         """View all farms in the list"""
@@ -2510,6 +2692,297 @@ class InteractiveBot:
 
         input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
 
+    # ==================== FARM LIST MANAGEMENT ====================
+
+    def view_all_farm_lists(self):
+        """View all farm lists summary"""
+        clear_screen()
+        print_header("ALL FARM LISTS")
+        self.farming.print_all_farm_lists()
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def create_farm_list(self):
+        """Create a new named farm list"""
+        clear_screen()
+        print_header("CREATE FARM LIST")
+
+        self.farming.print_all_farm_lists()
+
+        name = get_input("\nNew list name: ")
+        if not name:
+            return
+
+        print(f"\nSet default troops for this list?")
+        print(f"  1. Use global defaults ({self.farming.default_troops})")
+        print(f"  2. Configure new defaults")
+        print(f"  0. Cancel")
+
+        choice = get_input("\nChoice: ")
+        if choice == "0":
+            return
+        elif choice == "2":
+            troops = self.configure_troops()
+            self.farming.create_farm_list(name, troops)
+        else:
+            self.farming.create_farm_list(name)
+
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def switch_farm_list(self):
+        """Switch the active farm list"""
+        clear_screen()
+        print_header("SWITCH ACTIVE FARM LIST")
+
+        self.farming.print_all_farm_lists()
+
+        names = self.farming.get_farm_list_names()
+        if len(names) <= 1:
+            print(f"\n{Colors.YELLOW}Only one list exists. Create more lists first.{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        print(f"\nAvailable lists:")
+        for i, name in enumerate(names, 1):
+            active = " (active)" if name == self.farming.active_list_name else ""
+            count = len(self.farming.farm_lists[name].farms)
+            print(f"  {i}. {name} ({count} farms){active}")
+
+        choice = get_input("\nSelect list number: ")
+        try:
+            idx = int(choice) - 1
+            if 0 <= idx < len(names):
+                self.farming.switch_active_list(names[idx])
+            else:
+                print(f"{Colors.RED}Invalid selection{Colors.END}")
+        except ValueError:
+            # Try by name
+            if choice in names:
+                self.farming.switch_active_list(choice)
+            else:
+                print(f"{Colors.RED}Invalid selection{Colors.END}")
+
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def delete_farm_list(self):
+        """Delete a farm list"""
+        clear_screen()
+        print_header("DELETE FARM LIST")
+
+        self.farming.print_all_farm_lists()
+
+        names = self.farming.get_farm_list_names()
+        non_active = [n for n in names if n != self.farming.active_list_name]
+
+        if not non_active:
+            print(f"\n{Colors.YELLOW}Cannot delete the only/active list. Switch first.{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        print(f"\nDeletable lists (cannot delete active list '{self.farming.active_list_name}'):")
+        for i, name in enumerate(non_active, 1):
+            count = len(self.farming.farm_lists[name].farms)
+            print(f"  {i}. {name} ({count} farms)")
+
+        choice = get_input("\nSelect list number to delete: ")
+        try:
+            idx = int(choice) - 1
+            if 0 <= idx < len(non_active):
+                name = non_active[idx]
+                count = len(self.farming.farm_lists[name].farms)
+                confirm = get_input(f"Delete '{name}' with {count} farms? (y/n): ")
+                if confirm.lower() == 'y':
+                    self.farming.delete_farm_list(name)
+            else:
+                print(f"{Colors.RED}Invalid selection{Colors.END}")
+        except ValueError:
+            print(f"{Colors.RED}Invalid selection{Colors.END}")
+
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def move_farm_to_list(self):
+        """Move a farm from one list to another"""
+        clear_screen()
+        print_header("MOVE FARM TO ANOTHER LIST")
+
+        names = self.farming.get_farm_list_names()
+        if len(names) < 2:
+            print(f"{Colors.YELLOW}Need at least 2 farm lists. Create another list first.{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        # Show current active list farms
+        self.farming.print_farm_list()
+
+        farm_id = get_input("\nEnter farm ID to move: ")
+        try:
+            farm_id = int(farm_id)
+        except ValueError:
+            print(f"{Colors.RED}Invalid ID{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        if farm_id not in self.farming.farms:
+            print(f"{Colors.RED}Farm #{farm_id} not found in active list{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        # Show target lists
+        other_lists = [n for n in names if n != self.farming.active_list_name]
+        print(f"\nMove to which list?")
+        for i, name in enumerate(other_lists, 1):
+            count = len(self.farming.farm_lists[name].farms)
+            print(f"  {i}. {name} ({count} farms)")
+
+        choice = get_input("\nSelect target list: ")
+        try:
+            idx = int(choice) - 1
+            if 0 <= idx < len(other_lists):
+                self.farming.move_farm_to_list(farm_id, self.farming.active_list_name, other_lists[idx])
+            else:
+                print(f"{Colors.RED}Invalid selection{Colors.END}")
+        except ValueError:
+            print(f"{Colors.RED}Invalid selection{Colors.END}")
+
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    # ==================== FARM FINDER ====================
+
+    def scan_for_farms(self):
+        """Scan map area for farms and auto-add to a list"""
+        clear_screen()
+        print_header("FARM FINDER - AUTO SCAN")
+
+        # Center coordinates
+        default_x = self.farming.home_x
+        default_y = self.farming.home_y
+        print(f"Center coordinates (default: home {default_x}|{default_y})")
+        coords = get_input(f"Center x|y [{default_x}|{default_y}]: ")
+        if coords and '|' in coords:
+            try:
+                cx, cy = coords.split('|')
+                default_x = int(cx.strip())
+                default_y = int(cy.strip())
+            except ValueError:
+                print(f"{Colors.RED}Invalid coordinates, using home{Colors.END}")
+
+        # Radius
+        radius_str = get_input("Scan radius [10]: ")
+        try:
+            radius = int(radius_str) if radius_str else 10
+        except ValueError:
+            radius = 10
+
+        # Estimate
+        tile_count, est_seconds = self.farm_finder.estimate_scan_time(radius)
+        est_min = est_seconds // 60
+        est_sec = est_seconds % 60
+        print(f"\n  Estimated: {tile_count} tiles, ~{est_min}m {est_sec}s")
+
+        # Max population
+        max_pop_str = get_input("Max population [50]: ")
+        try:
+            max_pop = int(max_pop_str) if max_pop_str else 50
+        except ValueError:
+            max_pop = 50
+
+        # Filter options
+        print(f"\n{Colors.YELLOW}Include in scan:{Colors.END}")
+        inc_natars = get_input("  Include Natars? (y/n) [y]: ")
+        inc_villages = get_input("  Include player villages? (y/n) [y]: ")
+        inc_unocc_oasis = get_input("  Include unoccupied oases? (y/n) [y]: ")
+        inc_occ_oasis = get_input("  Include occupied oases? (y/n) [y]: ")
+
+        exclude_alliances_str = get_input("  Exclude alliances (comma-separated, or Enter to skip): ")
+        exclude_players_str = get_input("  Exclude players (comma-separated, or Enter to skip): ")
+
+        scan_filter = ScanFilter(
+            radius=radius,
+            max_population=max_pop,
+            include_natars=inc_natars.lower() != 'n',
+            include_player_villages=inc_villages.lower() != 'n',
+            include_unoccupied_oases=inc_unocc_oasis.lower() != 'n',
+            include_occupied_oases=inc_occ_oasis.lower() != 'n',
+            exclude_alliances=[a.strip() for a in exclude_alliances_str.split(',') if a.strip()] if exclude_alliances_str else [],
+            exclude_players=[p.strip() for p in exclude_players_str.split(',') if p.strip()] if exclude_players_str else [],
+        )
+
+        # Target list selection
+        names = self.farming.get_farm_list_names()
+        print(f"\n{Colors.YELLOW}Add found farms to which list?{Colors.END}")
+        for i, name in enumerate(names, 1):
+            active = " (active)" if name == self.farming.active_list_name else ""
+            count = len(self.farming.farm_lists[name].farms)
+            print(f"  {i}. {name} ({count} farms){active}")
+        print(f"  {len(names) + 1}. Create new list")
+
+        list_choice = get_input(f"\nSelect list [{self.farming.active_list_name}]: ")
+        target_list = self.farming.active_list_name
+
+        if list_choice:
+            try:
+                idx = int(list_choice) - 1
+                if idx == len(names):
+                    # Create new list
+                    new_name = get_input("New list name: ")
+                    if new_name:
+                        self.farming.create_farm_list(new_name)
+                        target_list = new_name
+                elif 0 <= idx < len(names):
+                    target_list = names[idx]
+            except ValueError:
+                if list_choice in names:
+                    target_list = list_choice
+
+        # Confirmation
+        print(f"\n{Colors.BOLD}Scan Summary:{Colors.END}")
+        print(f"  Center: ({default_x}|{default_y})")
+        print(f"  Radius: {radius}")
+        print(f"  Tiles: ~{tile_count}")
+        print(f"  Max pop: {max_pop}")
+        print(f"  Target list: {target_list}")
+
+        confirm = get_input(f"\n{Colors.YELLOW}Start scan? (y/n): {Colors.END}")
+        if confirm.lower() != 'y':
+            return
+
+        # Run scan with stop flag
+        stop_flag = StopFlag()
+        listener_thread = Thread(target=key_listener, args=(stop_flag,), daemon=True)
+        listener_thread.start()
+
+        print(f"\n{Colors.GREEN}Starting farm finder scan...{Colors.END}")
+        print(f"{Colors.RED}>>> Press 'Q'/'S' to stop <<<{Colors.END}")
+        print("=" * 50)
+
+        stats = self.farm_finder.scan_area(
+            center_x=default_x,
+            center_y=default_y,
+            scan_filter=scan_filter,
+            target_list=target_list,
+            stop_callback=stop_flag.should_stop,
+        )
+
+        stop_flag.stop()
+
+        self.logger.info(f"Farm finder scan: {stats['added']} farms added from {stats['scanned']} tiles scanned")
+
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def clear_scan_history(self):
+        """Clear farm finder scan history"""
+        clear_screen()
+        print_header("CLEAR SCAN HISTORY")
+
+        count = len(self.farming.scan_history.get('scanned_coords', []))
+        print(f"Scan history contains {count} scanned coordinates.")
+        print(f"Clearing allows re-scanning previously visited tiles.\n")
+
+        confirm = get_input(f"Clear scan history? (y/n): ")
+        if confirm.lower() == 'y':
+            self.farm_finder.clear_scan_history()
+
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
     # ==================== AI ASSISTANT ====================
 
     def ai_assistant_menu(self):
@@ -2941,6 +3414,173 @@ class InteractiveBot:
 
         input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
 
+    # ==================== REPORTS MANAGER ====================
+
+    def reports_menu(self):
+        """Reports management menu"""
+        while True:
+            clear_screen()
+            print_header("REPORTS MANAGER")
+
+            print_menu("Report Options", [
+                "📊 Preview reports (count by category)",
+                "🟢 Delete successful raids (no losses)",
+                "🟡 Delete successful raids (with losses)",
+                "🟢🟡 Delete ALL successful raids",
+                "🔴 Delete defeats (unsuccessful attacks)",
+                "🔵 Delete scout reports",
+                "🗑️  Delete ALL reports on page",
+                "🎯 Custom delete (select categories)",
+            ])
+
+            choice = get_input()
+
+            if choice == "0":
+                break
+            elif choice == "1":
+                self.preview_reports()
+            elif choice == "2":
+                self.delete_reports_by_type(['success_no_loss'])
+            elif choice == "3":
+                self.delete_reports_by_type(['success_with_loss'])
+            elif choice == "4":
+                self.delete_reports_by_type(['success_no_loss', 'success_with_loss'])
+            elif choice == "5":
+                self.delete_reports_by_type(['defeat'])
+            elif choice == "6":
+                self.delete_reports_by_type(['scout'])
+            elif choice == "7":
+                self.delete_all_reports()
+            elif choice == "8":
+                self.custom_delete_reports()
+
+    def preview_reports(self):
+        """Navigate to reports and show count by category"""
+        clear_screen()
+        print_header("REPORT PREVIEW")
+
+        print(f"{Colors.YELLOW}Scanning reports page...{Colors.END}\n")
+
+        counts = self.reports.count_reports_by_category()
+
+        total = sum(counts.values())
+        if total == 0:
+            print(f"{Colors.YELLOW}No reports found on current page (or page could not be parsed){Colors.END}")
+        else:
+            print(f"{'Category':<40} {'Count':>6}")
+            print("-" * 48)
+            for outcome, label in OUTCOME_LABELS.items():
+                count = counts.get(outcome, 0)
+                if count > 0:
+                    color = {
+                        'success_no_loss': Colors.GREEN,
+                        'success_with_loss': Colors.YELLOW,
+                        'defeat': Colors.RED,
+                        'scout': Colors.CYAN,
+                        'unknown': Colors.END,
+                    }.get(outcome, Colors.END)
+                    print(f"  {color}{label:<38}{Colors.END} {count:>6}")
+                else:
+                    print(f"  {label:<38} {count:>6}")
+            print("-" * 48)
+            print(f"  {'Total':<38} {total:>6}")
+            print(f"\n{Colors.YELLOW}Note: Counts are for the current page only{Colors.END}")
+
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def delete_reports_by_type(self, categories: List[str]):
+        """Delete reports of specified categories with confirmation"""
+        clear_screen()
+        print_header("DELETE REPORTS")
+
+        labels = [OUTCOME_LABELS.get(c, c) for c in categories]
+        print(f"Will delete: {Colors.YELLOW}{', '.join(labels)}{Colors.END}\n")
+
+        confirm = get_input("Proceed with deletion? (y/n): ")
+        if confirm.lower() != 'y':
+            print("Cancelled")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        # Set up stop flag for interruptible operation
+        stop_flag = StopFlag()
+        listener = Thread(target=key_listener, args=(stop_flag,), daemon=True)
+        listener.start()
+
+        print(f"\n{Colors.YELLOW}Deleting reports... (press Q to stop){Colors.END}\n")
+
+        stats = self.reports.delete_reports_by_category(
+            categories=categories,
+            stop_callback=stop_flag.should_stop,
+        )
+
+        stop_flag.stop()
+
+        print(f"\n{Colors.GREEN}Done! Deleted {stats['deleted']} reports across {stats['pages_processed']} page(s){Colors.END}")
+
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def delete_all_reports(self):
+        """Delete all reports on the current page"""
+        clear_screen()
+        print_header("DELETE ALL REPORTS")
+
+        print(f"{Colors.RED}This will delete ALL reports on the current reports page!{Colors.END}\n")
+
+        confirm = get_input("Are you sure? (y/n): ")
+        if confirm.lower() != 'y':
+            print("Cancelled")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        stop_flag = StopFlag()
+        listener = Thread(target=key_listener, args=(stop_flag,), daemon=True)
+        listener.start()
+
+        print(f"\n{Colors.YELLOW}Deleting all reports... (press Q to stop){Colors.END}\n")
+
+        deleted = self.reports.delete_all_on_page(stop_callback=stop_flag.should_stop)
+
+        stop_flag.stop()
+
+        print(f"\n{Colors.GREEN}Done! Deleted {deleted} reports{Colors.END}")
+
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def custom_delete_reports(self):
+        """Let user pick which categories to delete"""
+        clear_screen()
+        print_header("CUSTOM DELETE")
+
+        print("Select categories to delete:\n")
+
+        all_categories = list(OUTCOME_LABELS.keys())
+        for i, cat in enumerate(all_categories, 1):
+            print(f"  {Colors.CYAN}{i}.{Colors.END} {OUTCOME_LABELS[cat]}")
+        print()
+
+        selection = get_input("Enter numbers separated by commas (e.g. 1,3,4): ")
+        if not selection:
+            return
+
+        selected = []
+        try:
+            for num in selection.split(','):
+                idx = int(num.strip()) - 1
+                if 0 <= idx < len(all_categories):
+                    selected.append(all_categories[idx])
+        except ValueError:
+            print(f"{Colors.RED}Invalid input{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        if not selected:
+            print("No categories selected")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        self.delete_reports_by_type(selected)
+
     # ==================== AUTO MODE ====================
 
     def auto_mode_menu(self):
@@ -3211,7 +3851,7 @@ prioritize actions, and handle unexpected situations.
         print(f"  Free Crop: {self.resources.free_crop}")
 
         # Villages
-        villages = self.military.get_all_villages()
+        villages = self.village_cycler.get_all_villages()
         print(f"\n  Villages: {len(villages)}")
         for v in villages[:5]:  # Show first 5
             print(f"    - {v['name']}")
@@ -3250,7 +3890,7 @@ prioritize actions, and handle unexpected situations.
             'production': self.resources.production,
             'storage': self.resources.storage_capacity,
             'free_crop': self.resources.free_crop,
-            'villages': len(self.military.get_all_villages()),
+            'villages': len(self.village_cycler.get_all_villages()),
             'training_configs': len(self.military.load_village_training_configs()),
             'farms_enabled': len(self.farming.get_enabled_farms()),
             'total_farms': len(self.farming.get_all_farms()),
@@ -4248,6 +4888,7 @@ Priority mode: {self.autopilot_settings['priority']}
                 "🗺️  Village Map (scan & cache)",
                 f"⏳ Task Queue ({task_count} active)",
                 "⚙️  Settings",
+                "📨 Reports Manager",
                 "📸 Take Screenshot",
             ])
 
@@ -4280,6 +4921,8 @@ Priority mode: {self.autopilot_settings['priority']}
             elif choice == "11":
                 self.settings_menu()
             elif choice == "12":
+                self.reports_menu()
+            elif choice == "13":
                 self.browser.screenshot(f'manual_{datetime.now().strftime("%H%M%S")}.png')
                 print(f"{Colors.GREEN}✓ Screenshot saved{Colors.END}")
                 time.sleep(1)
