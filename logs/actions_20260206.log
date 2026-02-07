@@ -1,0 +1,29 @@
+2026-02-06 00:25:37 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-06 00:30:56 | ERROR    | ERROR | main_menu | HTTPConnectionPool(host='localhost', port=46317): Max retries exceeded with url: /session/a97e4379-5e9b-4719-8a5d-3ca95e35e107/elements (Caused by NewConnectionError("HTTPConnection(host='localhost', port=46317): Failed to establish a new connection: [Errno 111] Connection refused"))
+2026-02-06 00:34:45 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-06 00:39:29 | ERROR    | ERROR | main_menu | HTTPConnectionPool(host='localhost', port=47737): Max retries exceeded with url: /session/e2fe18d3-41e7-45e5-b93f-0c9d80722b2e/url (Caused by NewConnectionError("HTTPConnection(host='localhost', port=47737): Failed to establish a new connection: [Errno 111] Connection refused"))
+2026-02-06 00:41:05 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-06 00:41:36 | ERROR    | ERROR | main_menu | Message: Reached error page: about:neterror?e=connectionFailure&u=https%3A//ts2.travian-speed.com/build.php%3Fid%3D19&c=UTF-8&d=Firefox%20can%E2%80%99t%20establish%20a%20connection%20to%20the%20server%20at%20ts2.travian-speed.com.
+Stacktrace:
+RemoteError@chrome://remote/content/shared/RemoteError.sys.mjs:8:8
+WebDriverError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:199:5
+UnknownError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:910:5
+checkReadyState@chrome://remote/content/marionette/navigate.sys.mjs:58:24
+onNavigation@chrome://remote/content/marionette/navigate.sys.mjs:347:39
+emit@resource://gre/modules/EventEmitter.sys.mjs:156:19
+receiveMessage@chrome://remote/content/marionette/actors/MarionetteEventsParent.sys.mjs:33:25
+
+2026-02-06 00:43:28 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-06 00:49:58 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-06 00:55:46 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-06 01:17:33 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-06 01:28:43 | ERROR    | ERROR | main_menu | HTTPConnectionPool(host='localhost', port=47129): Max retries exceeded with url: /session/0012ea4b-ef1f-4ea1-83de-49ec2f1812a9/url (Caused by NewConnectionError("HTTPConnection(host='localhost', port=47129): Failed to establish a new connection: [Errno 111] Connection refused"))
+2026-02-06 01:30:19 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-06 01:56:17 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-06 01:58:13 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-06 03:09:57 | ERROR    | ERROR | main_menu | HTTPConnectionPool(host='localhost', port=46953): Read timed out. (read timeout=120)
+2026-02-06 13:14:40 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-06 14:23:18 | ERROR    | ERROR | main_menu | HTTPConnectionPool(host='localhost', port=44707): Read timed out. (read timeout=120)
+2026-02-06 20:13:36 | INFO     | LOGIN | SUCCESS | anonzvader
+2026-02-06 20:20:40 | ERROR    | ERROR | main_menu | HTTPConnectionPool(host='localhost', port=59410): Read timed out. (read timeout=120)
+2026-02-06 20:24:25 | INFO     | LOGIN | SUCCESS | anonzvader

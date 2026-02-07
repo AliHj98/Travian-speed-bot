@@ -12,7 +12,9 @@
       "Bash(sudo apt-get update:*)",
       "Bash(sudo apt-get:*)",
       "Bash(tesseract:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(git status:*)",
+      "Bash(git add:*)"
     ]
   }
 }

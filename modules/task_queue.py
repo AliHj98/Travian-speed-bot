@@ -197,6 +197,36 @@ class TaskExecutor:
             interval=interval
         )
 
+    def add_all_villages_upgrade_task(self, target_level: int = 20, interval: int = 60) -> int:
+        """Add a task to upgrade resources in ALL villages"""
+        return self.queue.add_task(
+            name=f"Upgrade resources ALL villages to L{target_level}",
+            task_type="all_villages_upgrade",
+            config={'target_level': target_level},
+            repeat=True,
+            interval=interval
+        )
+
+    def add_all_villages_building_task(self, target_level: int = 20, interval: int = 60) -> int:
+        """Add a task to upgrade village buildings in ALL villages"""
+        return self.queue.add_task(
+            name=f"Upgrade buildings ALL villages to L{target_level}",
+            task_type="all_villages_building",
+            config={'target_level': target_level},
+            repeat=True,
+            interval=interval
+        )
+
+    def add_all_villages_smart_build_task(self, interval: int = 120) -> int:
+        """Add a smart build task for ALL villages"""
+        return self.queue.add_task(
+            name=f"Smart build ALL villages",
+            task_type="all_villages_smart_build",
+            config={},
+            repeat=True,
+            interval=interval
+        )
+
     def execute_task(self, task: Task) -> bool:
         """Execute a single task"""
         task.status = TaskStatus.RUNNING
@@ -213,6 +243,12 @@ class TaskExecutor:
                 success = self._execute_farm(task.config)
             elif task.task_type == "multi_village_train":
                 success = self._execute_multi_village_train(task.config)
+            elif task.task_type == "all_villages_upgrade":
+                success = self._execute_all_villages_upgrade(task.config)
+            elif task.task_type == "all_villages_building":
+                success = self._execute_all_villages_building(task.config)
+            elif task.task_type == "all_villages_smart_build":
+                success = self._execute_all_villages_smart_build(task.config)
             else:
                 print(f"  Unknown task type: {task.task_type}")
         except Exception as e:
@@ -350,6 +386,135 @@ class TaskExecutor:
         else:
             print("  ✗ Military module not initialized")
             return False
+
+    def _execute_all_villages_upgrade(self, config: Dict) -> bool:
+        """Execute resource upgrade in ALL villages - fully completes each village before moving to next"""
+        if not hasattr(self.bot, 'village_cycler') or not self.bot.village_cycler:
+            print("  ✗ Village cycler not initialized")
+            return False
+
+        villages = self.bot.village_cycler.get_all_villages()
+        if not villages:
+            print("  ✗ No villages found")
+            return False
+
+        total_upgrades = 0
+        start_village = self.bot.village_cycler.get_current_village()
+
+        # Track which village we're working on (persists between task runs)
+        if not hasattr(self, '_current_village_index'):
+            self._current_village_index = 0
+
+        # Get current village to work on
+        if self._current_village_index >= len(villages):
+            self._current_village_index = 0  # Start over
+
+        village = villages[self._current_village_index]
+        print(f"  [{village['name']}] (village {self._current_village_index + 1}/{len(villages)})")
+
+        if not self.bot.village_cycler.switch_to_village(village['id']):
+            print(f"    Failed to switch, trying next village")
+            self._current_village_index += 1
+            return False
+
+        # Run full resource upgrade for this village
+        upgrades = self.bot.buildings.auto_upgrade_all_to_20(self.bot.session, lambda: False)
+        total_upgrades += upgrades
+
+        if upgrades == 0:
+            # This village is done, move to next
+            print(f"    ✓ Village complete, moving to next")
+            self._current_village_index += 1
+
+        # Return to start village
+        if start_village['id']:
+            self.bot.village_cycler.switch_to_village(start_village['id'])
+
+        return total_upgrades > 0
+
+    def _execute_all_villages_building(self, config: Dict) -> bool:
+        """Execute village building upgrade in ALL villages - fully completes each village before moving to next"""
+        if not hasattr(self.bot, 'village_cycler') or not self.bot.village_cycler:
+            print("  ✗ Village cycler not initialized")
+            return False
+
+        villages = self.bot.village_cycler.get_all_villages()
+        if not villages:
+            print("  ✗ No villages found")
+            return False
+
+        total_upgrades = 0
+        start_village = self.bot.village_cycler.get_current_village()
+
+        # Track which village we're working on
+        if not hasattr(self, '_building_village_index'):
+            self._building_village_index = 0
+
+        if self._building_village_index >= len(villages):
+            self._building_village_index = 0
+
+        village = villages[self._building_village_index]
+        print(f"  [{village['name']}] (village {self._building_village_index + 1}/{len(villages)})")
+
+        if not self.bot.village_cycler.switch_to_village(village['id']):
+            print(f"    Failed to switch, trying next village")
+            self._building_village_index += 1
+            return False
+
+        # Run full building upgrade for this village
+        upgrades = self.bot.buildings.auto_upgrade_all_buildings(self.bot.session, lambda: False)
+        total_upgrades += upgrades
+
+        if upgrades == 0:
+            print(f"    ✓ Village complete, moving to next")
+            self._building_village_index += 1
+
+        if start_village['id']:
+            self.bot.village_cycler.switch_to_village(start_village['id'])
+
+        return total_upgrades > 0
+
+    def _execute_all_villages_smart_build(self, config: Dict) -> bool:
+        """Execute smart build in ALL villages - fully completes each village before moving to next"""
+        if not hasattr(self.bot, 'village_cycler') or not self.bot.village_cycler:
+            print("  ✗ Village cycler not initialized")
+            return False
+
+        villages = self.bot.village_cycler.get_all_villages()
+        if not villages:
+            print("  ✗ No villages found")
+            return False
+
+        total_upgrades = 0
+        start_village = self.bot.village_cycler.get_current_village()
+
+        # Track which village we're working on
+        if not hasattr(self, '_smart_build_village_index'):
+            self._smart_build_village_index = 0
+
+        if self._smart_build_village_index >= len(villages):
+            self._smart_build_village_index = 0
+
+        village = villages[self._smart_build_village_index]
+        print(f"  [{village['name']}] (village {self._smart_build_village_index + 1}/{len(villages)})")
+
+        if not self.bot.village_cycler.switch_to_village(village['id']):
+            print(f"    Failed to switch, trying next village")
+            self._smart_build_village_index += 1
+            return False
+
+        # Run full smart build for this village
+        upgrades = self.bot.buildings.smart_build_order(lambda: False)
+        total_upgrades += upgrades
+
+        if upgrades == 0:
+            print(f"    ✓ Village complete, moving to next")
+            self._smart_build_village_index += 1
+
+        if start_village['id']:
+            self.bot.village_cycler.switch_to_village(start_village['id'])
+
+        return total_upgrades > 0
 
     def run_loop(self, stop_event: threading.Event):
         """Main task execution loop"""

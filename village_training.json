@@ -1,0 +1,13 @@
+{
+  "0": {
+    "village_id": "0",
+    "village_name": "1",
+    "enabled": true,
+    "barracks_troop": "t1",
+    "barracks_troop_name": "Troop (t1)",
+    "stable_troop": "",
+    "stable_troop_name": "",
+    "train_barracks": true,
+    "train_stable": false
+  }
+}

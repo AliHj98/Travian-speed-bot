@@ -28,6 +28,7 @@ from modules.buildings import BuildingManager
 from modules.military import MilitaryManager
 from modules.self_heal import SelfHealingBot
 from modules.village_map import VillageMap
+from modules.village_cycler import VillageCycler
 from modules.task_queue import TaskExecutor, TaskQueue, TaskStatus
 from modules.farming import FarmListManager
 from utils.helpers import Logger, ActionLogger, setup_logger
@@ -210,6 +211,7 @@ class InteractiveBot:
             self.buildings = BuildingManager(self.browser, self.resources)
             self.military = MilitaryManager(self.browser, self.resources)
             self.village_map = VillageMap(self.browser)
+            self.village_cycler = VillageCycler(self.browser)
             self.farming = FarmListManager(self.browser)
             self.task_executor = TaskExecutor(self)
 
@@ -411,6 +413,13 @@ class InteractiveBot:
                 "🌟 AUTO UPGRADE EVERYTHING (resources + buildings)",
                 "Scan all buildings",
                 "🧠 SMART BUILD ORDER (resources→main→barracks→fill slots→all)",
+                "─────── ALL VILLAGES ───────",
+                "🌍 AUTO UPGRADE RESOURCES - ALL VILLAGES",
+                "🌍 AUTO UPGRADE BUILDINGS - ALL VILLAGES",
+                "🌍 SMART BUILD - ALL VILLAGES",
+                "─────── DEMOLISH ───────",
+                "🗑️  Demolish single building",
+                "🗑️  Demolish all of type (e.g. all Crannies)",
             ])
 
             choice = get_input()
@@ -436,6 +445,20 @@ class InteractiveBot:
                 self.scan_all_buildings()
             elif choice == "9":
                 self.smart_build_order()
+            elif choice == "10":
+                pass  # Separator
+            elif choice == "11":
+                self.auto_upgrade_all_villages_resources()
+            elif choice == "12":
+                self.auto_upgrade_all_villages_buildings()
+            elif choice == "13":
+                self.smart_build_all_villages()
+            elif choice == "14":
+                pass  # Separator
+            elif choice == "15":
+                self.demolish_single_building()
+            elif choice == "16":
+                self.demolish_all_of_type()
 
     def smart_build_order(self):
         """Smart build order: resources to 10, main to 5, barracks to 3, fill slots, then everything"""
@@ -468,6 +491,319 @@ class InteractiveBot:
 
         print(f"\n{Colors.YELLOW}Smart build order stopped{Colors.END}")
         print(f"Total upgrades/constructions: {total}")
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def auto_upgrade_all_villages_resources(self):
+        """Auto upgrade resources in ALL villages - main village to L20, others to L10"""
+        clear_screen()
+        print_header("AUTO UPGRADE RESOURCES - ALL VILLAGES")
+
+        villages = self.village_cycler.get_all_villages()
+        if not villages:
+            print(f"{Colors.RED}No villages found!{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        print(f"{Colors.YELLOW}Found {len(villages)} village(s):{Colors.END}")
+        for i, v in enumerate(villages, 1):
+            target = "L20" if i == 1 else "L10"
+            print(f"  {i}. {v['name']} -> {target}")
+
+        print(f"\n{Colors.YELLOW}Main village (first) -> L20, other villages -> L10{Colors.END}")
+        print(f"{Colors.GREEN}Press 'Q'/'S' to stop{Colors.END}\n")
+
+        confirm = get_input("Start? (y/n): ")
+        if confirm.lower() != 'y':
+            return
+
+        stop_flag = StopFlag()
+        listener_thread = Thread(target=key_listener, args=(stop_flag,), daemon=True)
+        listener_thread.start()
+
+        total_upgrades = 0
+        villages_completed = 0
+        start_village = self.village_cycler.get_current_village()
+
+        try:
+            for i, village in enumerate(villages, 1):
+                if stop_flag.should_stop():
+                    break
+
+                # Main village (first) -> L20, others -> L10
+                target_level = 20 if i == 1 else 10
+
+                print(f"\n{'='*60}")
+                print(f"VILLAGE {i}/{len(villages)}: {village['name']} -> L{target_level}")
+                print(f"{'='*60}")
+
+                if not self.village_cycler.switch_to_village(village['id']):
+                    print(f"  Failed to switch to village, skipping...")
+                    continue
+
+                # Set target level and upgrade
+                old_target = self.buildings.target_level
+                self.buildings.target_level = target_level
+
+                village_upgrades = self.buildings.auto_upgrade_all_to_20(self.session, stop_flag.should_stop)
+                total_upgrades += village_upgrades
+
+                # Restore target level
+                self.buildings.target_level = old_target
+
+                if not stop_flag.should_stop():
+                    villages_completed += 1
+                    print(f"\n  ✓ {village['name']} COMPLETE - {village_upgrades} upgrades")
+
+        except KeyboardInterrupt:
+            stop_flag.stop()
+
+        # Return to original village
+        if start_village['id']:
+            self.village_cycler.switch_to_village(start_village['id'])
+
+        print(f"\n{'='*60}")
+        print(f"{Colors.YELLOW}Stopped{Colors.END}")
+        print(f"Villages completed: {villages_completed}/{len(villages)}")
+        print(f"Total upgrades: {total_upgrades}")
+        print(f"{'='*60}")
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def auto_upgrade_all_villages_buildings(self):
+        """Auto upgrade village buildings in ALL villages - main village L20, others L10"""
+        clear_screen()
+        print_header("AUTO UPGRADE BUILDINGS - ALL VILLAGES")
+
+        villages = self.village_cycler.get_all_villages()
+        if not villages:
+            print(f"{Colors.RED}No villages found!{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        print(f"{Colors.YELLOW}Found {len(villages)} village(s):{Colors.END}")
+        for i, v in enumerate(villages, 1):
+            target = "L20" if i == 1 else "L10"
+            print(f"  {i}. {v['name']} -> {target}")
+
+        print(f"\n{Colors.YELLOW}Main village (first) -> L20, other villages -> L10{Colors.END}")
+        print(f"{Colors.GREEN}Press 'Q'/'S' to stop{Colors.END}\n")
+
+        confirm = get_input("Start? (y/n): ")
+        if confirm.lower() != 'y':
+            return
+
+        stop_flag = StopFlag()
+        listener_thread = Thread(target=key_listener, args=(stop_flag,), daemon=True)
+        listener_thread.start()
+
+        total_upgrades = 0
+        villages_completed = 0
+        start_village = self.village_cycler.get_current_village()
+
+        try:
+            for i, village in enumerate(villages, 1):
+                if stop_flag.should_stop():
+                    break
+
+                # Main village (first) -> L20, others -> L10
+                target_level = 20 if i == 1 else 10
+
+                print(f"\n{'='*60}")
+                print(f"VILLAGE {i}/{len(villages)}: {village['name']} -> L{target_level}")
+                print(f"{'='*60}")
+
+                if not self.village_cycler.switch_to_village(village['id']):
+                    print(f"  Failed to switch to village, skipping...")
+                    continue
+
+                # Set target level and upgrade
+                old_target = self.buildings.target_level
+                self.buildings.target_level = target_level
+
+                village_upgrades = self.buildings.auto_upgrade_all_buildings(self.session, stop_flag.should_stop)
+                total_upgrades += village_upgrades
+
+                # Restore target level
+                self.buildings.target_level = old_target
+
+                if not stop_flag.should_stop():
+                    villages_completed += 1
+                    print(f"\n  ✓ {village['name']} COMPLETE - {village_upgrades} upgrades")
+
+        except KeyboardInterrupt:
+            stop_flag.stop()
+
+        # Return to original village
+        if start_village['id']:
+            self.village_cycler.switch_to_village(start_village['id'])
+
+        print(f"\n{'='*60}")
+        print(f"{Colors.YELLOW}Stopped{Colors.END}")
+        print(f"Villages completed: {villages_completed}/{len(villages)}")
+        print(f"Total upgrades: {total_upgrades}")
+        print(f"{'='*60}")
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def smart_build_all_villages(self):
+        """Run smart build order in ALL villages - main village L20, others L10"""
+        clear_screen()
+        print_header("SMART BUILD - ALL VILLAGES")
+
+        villages = self.village_cycler.get_all_villages()
+        if not villages:
+            print(f"{Colors.RED}No villages found!{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        print(f"{Colors.YELLOW}Found {len(villages)} village(s):{Colors.END}")
+        for i, v in enumerate(villages, 1):
+            target = "L20" if i == 1 else "L10"
+            print(f"  {i}. {v['name']} -> {target}")
+
+        print(f"\n{Colors.YELLOW}Main village (first) -> L20, other villages -> L10{Colors.END}")
+        print(f"{Colors.GREEN}Press 'Q'/'S' to stop{Colors.END}\n")
+
+        confirm = get_input("Start? (y/n): ")
+        if confirm.lower() != 'y':
+            return
+
+        stop_flag = StopFlag()
+        listener_thread = Thread(target=key_listener, args=(stop_flag,), daemon=True)
+        listener_thread.start()
+
+        total_upgrades = 0
+        villages_completed = 0
+        start_village = self.village_cycler.get_current_village()
+
+        try:
+            for i, village in enumerate(villages, 1):
+                if stop_flag.should_stop():
+                    break
+
+                # Main village (first) -> L20, others -> L10
+                target_level = 20 if i == 1 else 10
+
+                print(f"\n{'='*60}")
+                print(f"VILLAGE {i}/{len(villages)}: {village['name']} -> L{target_level}")
+                print(f"{'='*60}")
+
+                if not self.village_cycler.switch_to_village(village['id']):
+                    print(f"  Failed to switch to village, skipping...")
+                    continue
+
+                # Set target level and run smart build
+                old_target = self.buildings.target_level
+                self.buildings.target_level = target_level
+
+                village_upgrades = self.buildings.smart_build_order(stop_flag.should_stop)
+                total_upgrades += village_upgrades
+
+                # Restore target level
+                self.buildings.target_level = old_target
+
+                if not stop_flag.should_stop():
+                    villages_completed += 1
+                    print(f"\n  ✓ {village['name']} COMPLETE - {village_upgrades} upgrades")
+
+        except KeyboardInterrupt:
+            stop_flag.stop()
+
+        # Return to original village
+        if start_village['id']:
+            self.village_cycler.switch_to_village(start_village['id'])
+
+        print(f"\n{'='*60}")
+        print(f"{Colors.YELLOW}Stopped{Colors.END}")
+        print(f"Villages completed: {villages_completed}/{len(villages)}")
+        print(f"Total upgrades: {total_upgrades}")
+        print(f"{'='*60}")
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def demolish_single_building(self):
+        """Demolish a single building"""
+        clear_screen()
+        print_header("DEMOLISH BUILDING")
+
+        print(f"{Colors.YELLOW}Scanning village buildings...{Colors.END}\n")
+        buildings = self.buildings.scan_and_demolish_menu()
+
+        if not buildings:
+            print(f"{Colors.RED}No buildings found to demolish{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        print(f"  {'#':<4} {'Slot':<6} {'Building':<20} {'Level':<6}")
+        print(f"  {'-'*40}")
+        for i, b in enumerate(buildings, 1):
+            print(f"  {i:<4} {b['slot']:<6} {b['name']:<20} L{b['level']}")
+
+        print()
+        choice = get_input("Enter number to demolish (0 to cancel): ")
+
+        try:
+            idx = int(choice)
+            if idx == 0:
+                return
+            if 1 <= idx <= len(buildings):
+                building = buildings[idx - 1]
+                confirm = get_input(f"Demolish {building['name']} at slot #{building['slot']}? (y/n): ")
+                if confirm.lower() == 'y':
+                    if self.buildings.demolish_building(building['slot'], building['name']):
+                        print(f"{Colors.GREEN}✓ Demolish started{Colors.END}")
+                    else:
+                        print(f"{Colors.RED}✗ Could not demolish{Colors.END}")
+            else:
+                print(f"{Colors.RED}Invalid selection{Colors.END}")
+        except ValueError:
+            print(f"{Colors.RED}Invalid input{Colors.END}")
+
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def demolish_all_of_type(self):
+        """Demolish all buildings of a specific type"""
+        clear_screen()
+        print_header("DEMOLISH ALL OF TYPE")
+
+        print(f"{Colors.YELLOW}Scanning village buildings...{Colors.END}\n")
+        buildings = self.buildings.scan_and_demolish_menu()
+
+        if not buildings:
+            print(f"{Colors.RED}No buildings found{Colors.END}")
+            input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+            return
+
+        # Count by type
+        by_type = {}
+        for b in buildings:
+            name = b['name']
+            if name not in by_type:
+                by_type[name] = []
+            by_type[name].append(b)
+
+        print(f"  {'#':<4} {'Building Type':<20} {'Count':<6}")
+        print(f"  {'-'*35}")
+        types_list = list(by_type.items())
+        for i, (name, blist) in enumerate(types_list, 1):
+            print(f"  {i:<4} {name:<20} {len(blist)}")
+
+        print()
+        choice = get_input("Enter number to demolish ALL of that type (0 to cancel): ")
+
+        try:
+            idx = int(choice)
+            if idx == 0:
+                return
+            if 1 <= idx <= len(types_list):
+                building_type, blist = types_list[idx - 1]
+                confirm = get_input(f"Demolish ALL {len(blist)} {building_type}(s)? (y/n): ")
+                if confirm.lower() == 'y':
+                    print(f"\n{Colors.YELLOW}Demolishing...{Colors.END}")
+                    count = self.buildings.demolish_all_of_type(building_type)
+                    print(f"{Colors.GREEN}✓ Demolished {count} building(s){Colors.END}")
+            else:
+                print(f"{Colors.RED}Invalid selection{Colors.END}")
+        except ValueError:
+            print(f"{Colors.RED}Invalid input{Colors.END}")
+
         input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
 
     def view_resource_fields(self):
@@ -3535,6 +3871,11 @@ Priority mode: {self.autopilot_settings['priority']}
                 "Add village building upgrade task",
                 "Add upgrade ALL task (resources + buildings)",
                 "Add auto-farming task",
+                "─────── ALL VILLAGES TASKS ───────",
+                "🌍 Add ALL VILLAGES resource upgrade task",
+                "🌍 Add ALL VILLAGES building upgrade task",
+                "🌍 Add ALL VILLAGES smart build task",
+                "─────────────────────────────────",
                 "Remove a task",
                 "Clear completed tasks",
             ])
@@ -3566,6 +3907,16 @@ Priority mode: {self.autopilot_settings['priority']}
             elif choice == "8":
                 self.add_farming_task_to_queue()
             elif choice == "9":
+                pass  # Separator
+            elif choice == "10":
+                self.add_all_villages_upgrade_task_to_queue()
+            elif choice == "11":
+                self.add_all_villages_building_task_to_queue()
+            elif choice == "12":
+                self.add_all_villages_smart_build_task_to_queue()
+            elif choice == "13":
+                pass  # Separator
+            elif choice == "14":
                 task_id = get_input("Task ID to remove: ")
                 try:
                     tid = int(task_id)
@@ -3576,7 +3927,7 @@ Priority mode: {self.autopilot_settings['priority']}
                 except ValueError:
                     print(f"{Colors.RED}Invalid ID{Colors.END}")
                 time.sleep(1)
-            elif choice == "10":
+            elif choice == "15":
                 self.task_executor.queue.clear_completed()
                 print(f"{Colors.GREEN}✓ Cleared completed tasks{Colors.END}")
                 time.sleep(1)
@@ -3700,6 +4051,72 @@ Priority mode: {self.autopilot_settings['priority']}
         print(f"{Colors.GREEN}✓ Multi-village training task added (every {interval}s){Colors.END}")
         time.sleep(1)
 
+    def add_all_villages_upgrade_task_to_queue(self):
+        """Add a task to upgrade resources in ALL villages"""
+        villages = self.village_cycler.get_all_villages()
+        if not villages:
+            print(f"{Colors.RED}No villages found!{Colors.END}")
+            time.sleep(2)
+            return
+
+        print(f"\n{Colors.GREEN}Will upgrade resources in {len(villages)} village(s){Colors.END}")
+
+        target = get_input("Target level (default 20): ")
+        target = int(target) if target else 20
+
+        interval = get_input("Interval in seconds (default 60): ")
+        try:
+            interval = int(interval) if interval else 60
+        except ValueError:
+            interval = 60
+
+        self.task_executor.add_all_villages_upgrade_task(target_level=target, interval=interval)
+        print(f"{Colors.GREEN}✓ ALL VILLAGES resource upgrade task added (every {interval}s){Colors.END}")
+        time.sleep(1)
+
+    def add_all_villages_building_task_to_queue(self):
+        """Add a task to upgrade buildings in ALL villages"""
+        villages = self.village_cycler.get_all_villages()
+        if not villages:
+            print(f"{Colors.RED}No villages found!{Colors.END}")
+            time.sleep(2)
+            return
+
+        print(f"\n{Colors.GREEN}Will upgrade buildings in {len(villages)} village(s){Colors.END}")
+
+        target = get_input("Target level (default 20): ")
+        target = int(target) if target else 20
+
+        interval = get_input("Interval in seconds (default 60): ")
+        try:
+            interval = int(interval) if interval else 60
+        except ValueError:
+            interval = 60
+
+        self.task_executor.add_all_villages_building_task(target_level=target, interval=interval)
+        print(f"{Colors.GREEN}✓ ALL VILLAGES building upgrade task added (every {interval}s){Colors.END}")
+        time.sleep(1)
+
+    def add_all_villages_smart_build_task_to_queue(self):
+        """Add a smart build task for ALL villages"""
+        villages = self.village_cycler.get_all_villages()
+        if not villages:
+            print(f"{Colors.RED}No villages found!{Colors.END}")
+            time.sleep(2)
+            return
+
+        print(f"\n{Colors.GREEN}Will run smart build in {len(villages)} village(s){Colors.END}")
+
+        interval = get_input("Interval in seconds (default 120): ")
+        try:
+            interval = int(interval) if interval else 120
+        except ValueError:
+            interval = 120
+
+        self.task_executor.add_all_villages_smart_build_task(interval=interval)
+        print(f"{Colors.GREEN}✓ ALL VILLAGES smart build task added (every {interval}s){Colors.END}")
+        time.sleep(1)
+
     # ==================== VILLAGE MAP ====================
 
     def village_map_menu(self):
@@ -3721,6 +4138,7 @@ Priority mode: {self.autopilot_settings['priority']}
                 "🔄 Re-scan (force refresh)",
                 "🗑️  Clear cache",
                 "🏠 Find building by name",
+                "🔀 Test village switcher",
             ])
 
             choice = get_input()
@@ -3737,6 +4155,8 @@ Priority mode: {self.autopilot_settings['priority']}
                 self.clear_village_cache()
             elif choice == "5":
                 self.find_building()
+            elif choice == "6":
+                self.test_village_switcher()
 
     def scan_village(self, force: bool = False):
         """Scan current village"""
@@ -3769,6 +4189,28 @@ Priority mode: {self.autopilot_settings['priority']}
                 print(f"\n{Colors.GREEN}Found '{name}' at slot #{slot}{Colors.END}")
             else:
                 print(f"\n{Colors.RED}Building '{name}' not found{Colors.END}")
+        input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
+
+    def test_village_switcher(self):
+        """Test village switching functionality"""
+        clear_screen()
+        print_header("VILLAGE SWITCHER TEST")
+        print(f"{Colors.YELLOW}This test will:{Colors.END}")
+        print("  1. Find all your villages")
+        print("  2. Try switching to each one")
+        print("  3. Verify the switch worked")
+        print("  4. Return to original village")
+        print()
+
+        confirm = get_input("Run village switcher test? (y/n): ")
+        if confirm.lower() != 'y':
+            return
+
+        print()
+        from test_village_switcher import VillageSwitcherTest
+        tester = VillageSwitcherTest(self.browser)
+        results = tester.run_test()
+
         input(f"\n{Colors.CYAN}Press Enter to continue...{Colors.END}")
 
     # ==================== MAIN MENU ====================

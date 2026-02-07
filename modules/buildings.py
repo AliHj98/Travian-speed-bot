@@ -74,6 +74,207 @@ class BuildingManager:
             print(f"  ✗ Error: {e}")
             return False
 
+    def demolish_building(self, building_id: int, building_name: str = None) -> bool:
+        """Demolish a building by ID (uses dropdown in Main Building)"""
+        from config import config
+
+        try:
+            # Find Main Building slot
+            mb_slot = None
+            for slot_id in range(19, 41):
+                self.navigate_to_building(slot_id)
+                h1 = self.browser.find_element_fast(By.CSS_SELECTOR, 'h1.titleInHeader')
+                if h1 and 'main' in h1.text.lower() and 'building' in h1.text.lower():
+                    mb_slot = slot_id
+                    break
+
+            if not mb_slot:
+                print("  ✗ Main Building not found")
+                return False
+
+            # Navigate to Main Building (demolish is usually on a tab or the main page)
+            self.browser.navigate_to(f"{config.base_url}/build.php?id={mb_slot}")
+            time.sleep(0.3)
+
+            # Look for demolish tab/link and click it
+            demolish_tab_selectors = [
+                'a[href*="t=2"]',
+                'a[href*="demolish"]',
+                '.tabContainer a:last-child',
+                'nav a:last-child',
+                'a.demolishTab',
+            ]
+
+            for sel in demolish_tab_selectors:
+                tab = self.browser.find_element_fast(By.CSS_SELECTOR, sel)
+                if tab:
+                    try:
+                        tab.click()
+                        time.sleep(0.3)
+                        break
+                    except:
+                        continue
+
+            # Find the dropdown/select element
+            dropdown_selectors = [
+                'select',
+                'select[name*="demolish"]',
+                'select[name*="building"]',
+                '#demolish select',
+                '.demolish select',
+            ]
+
+            dropdown = None
+            for sel in dropdown_selectors:
+                dropdown = self.browser.find_element_fast(By.CSS_SELECTOR, sel)
+                if dropdown:
+                    break
+
+            if not dropdown:
+                print("  ✗ Demolish dropdown not found")
+                return False
+
+            # Select the building from dropdown
+            from selenium.webdriver.support.ui import Select
+            select = Select(dropdown)
+
+            # Try to select by value (building ID)
+            selected = False
+            try:
+                select.select_by_value(str(building_id))
+                selected = True
+            except:
+                pass
+
+            # Try to select by visible text (building name)
+            if not selected and building_name:
+                try:
+                    for option in select.options:
+                        option_text = option.text.lower().replace(' ', '')
+                        if building_name.lower().replace(' ', '') in option_text:
+                            select.select_by_visible_text(option.text)
+                            selected = True
+                            break
+                except:
+                    pass
+
+            # Try to find option containing the building ID
+            if not selected:
+                try:
+                    for option in select.options:
+                        option_val = option.get_attribute('value') or ''
+                        if str(building_id) in option_val:
+                            select.select_by_value(option_val)
+                            selected = True
+                            break
+                except:
+                    pass
+
+            if not selected:
+                print(f"  ✗ Could not find building #{building_id} in dropdown")
+                return False
+
+            # Click the demolish button
+            demolish_btn_selectors = [
+                'button[type="submit"]',
+                'button.green',
+                'button.demolish',
+                'input[type="submit"]',
+                '.demolish button',
+            ]
+
+            for sel in demolish_btn_selectors:
+                btn = self.browser.find_element_fast(By.CSS_SELECTOR, sel)
+                if btn:
+                    btn_text = btn.text.lower() if btn.text else ''
+                    btn_value = btn.get_attribute('value') or ''
+                    # Make sure it's a demolish button
+                    if 'demolish' in btn_text or 'demolish' in btn_value.lower() or 'green' in (btn.get_attribute('class') or ''):
+                        btn.click()
+                        print(f"  ✓ Demolishing building #{building_id}")
+                        return True
+
+            print(f"  ✗ Could not find demolish button")
+            return False
+
+        except Exception as e:
+            print(f"  ✗ Demolish error: {e}")
+            return False
+
+    def demolish_by_name(self, building_name: str) -> bool:
+        """Demolish a building by name"""
+        # First find the building slot
+        building_name_lower = building_name.lower().replace(' ', '')
+
+        for slot_id in range(19, 41):
+            self.navigate_to_building(slot_id)
+            h1 = self.browser.find_element_fast(By.CSS_SELECTOR, 'h1.titleInHeader')
+            if h1:
+                h1_text = h1.text.lower().replace(' ', '')
+                if building_name_lower in h1_text:
+                    print(f"  Found {building_name} at slot #{slot_id}")
+                    return self.demolish_building(slot_id, building_name)
+
+        print(f"  ✗ Building '{building_name}' not found")
+        return False
+
+    def demolish_all_of_type(self, building_name: str, stop_callback=None) -> int:
+        """Demolish all buildings of a specific type"""
+        if stop_callback is None:
+            stop_callback = lambda: False
+
+        building_name_lower = building_name.lower().replace(' ', '')
+        demolished = 0
+
+        # Find all matching buildings
+        matching_slots = []
+        for slot_id in range(19, 41):
+            if stop_callback():
+                break
+            self.navigate_to_building(slot_id)
+            h1 = self.browser.find_element_fast(By.CSS_SELECTOR, 'h1.titleInHeader')
+            if h1:
+                h1_text = h1.text.lower().replace(' ', '')
+                if building_name_lower in h1_text:
+                    matching_slots.append((slot_id, h1.text.split('Level')[0].strip()))
+
+        print(f"  Found {len(matching_slots)} {building_name}(s) to demolish")
+
+        for slot_id, name in matching_slots:
+            if stop_callback():
+                break
+            if self.demolish_building(slot_id, name):
+                demolished += 1
+                time.sleep(0.5)  # Small delay between demolitions
+
+        return demolished
+
+    def scan_and_demolish_menu(self) -> List[Dict]:
+        """Scan village buildings and return list for demolish selection"""
+        buildings = []
+        for slot_id in range(19, 41):
+            self.navigate_to_building(slot_id)
+            h1 = self.browser.find_element_fast(By.CSS_SELECTOR, 'h1.titleInHeader')
+            if h1:
+                text = h1.text
+                name = "Empty"
+                level = 0
+                if 'Level' in text:
+                    name = text.split('Level')[0].strip()
+                    match = re.search(r'Level\s*(\d+)', text)
+                    if match:
+                        level = int(match.group(1))
+                elif text.strip() and 'Construct' not in text:
+                    name = text.strip()
+
+                if name not in ['Empty', 'Unknown'] and 'Construct' not in name:
+                    buildings.append({
+                        'slot': slot_id,
+                        'name': name,
+                        'level': level
+                    })
+        return buildings
+
     def auto_upgrade_resources(self, session) -> bool:
         """Auto-upgrade ONE field - returns True if upgraded"""
         # Priority order: croplands first, then others
@@ -226,11 +427,8 @@ class BuildingManager:
                 print("[Press Q/S to stop]")
 
                 if upgraded_this_round == 0:
-                    print("No upgrades available, waiting 5s...")
-                    for _ in range(5):
-                        if stop_callback():
-                            break
-                        time.sleep(1)
+                    # No upgrades available - all done or waiting for resources
+                    break
 
         except KeyboardInterrupt:
             print(f"\n\n⚠️  Stopped by user")
@@ -328,22 +526,14 @@ class BuildingManager:
                 upgrade_btn = self.browser.find_element(By.CSS_SELECTOR, 'button.build', timeout=2)
 
                 if not upgrade_btn:
-                    print("  Waiting for upgrade button... [Q/S to stop]")
-                    for _ in range(2):
-                        if stop_callback():
-                            break
-                        time.sleep(1)
-                    continue
+                    # No upgrade button, done
+                    break
 
                 btn_class = upgrade_btn.get_attribute('class') or ''
 
                 if 'disabled' in btn_class:
-                    print(f"  L{current_level} - Waiting for resources/queue... [Q/S to stop]")
-                    for _ in range(3):
-                        if stop_callback():
-                            break
-                        time.sleep(1)
-                    continue
+                    # Can't upgrade, done for now
+                    break
 
                 # Click upgrade
                 print(f"🔨 {info['name']} L{current_level} -> L{current_level + 1}")
@@ -543,11 +733,8 @@ class BuildingManager:
                 print("[Press Q/S to stop]")
 
                 if upgraded_this_round == 0:
-                    print("No upgrades available, waiting 5s...")
-                    for _ in range(5):
-                        if stop_callback():
-                            break
-                        time.sleep(1)
+                    # No upgrades available - all done or waiting for resources
+                    break
 
         except KeyboardInterrupt:
             print(f"\n\n⚠️  Stopped by user")
@@ -754,16 +941,8 @@ class BuildingManager:
             if self._try_upgrade(slot):
                 print(f"    🔧 {name} L{level} -> L{level+1}")
             else:
-                # Can't upgrade right now, wait
-                for _ in range(3):
-                    if stop_callback():
-                        return False
-                    time.sleep(1)
-                # Check again
-                _, level = self._get_field_level(slot)
-                if level >= target_level:
-                    return True
-                return False  # Still can't upgrade
+                # Can't upgrade right now, done for now
+                return False
         return False
 
     def _build_new_building(self, slot_id: int, building_name: str) -> bool:
@@ -775,126 +954,71 @@ class BuildingManager:
             print(f"  Unknown building GID: {building_name}")
             return False
 
-        # Method 1: Direct URL navigation with GID parameter
-        # This is the most reliable method for Travian
-        direct_url = f"{config.base_url}/build.php?id={slot_id}&gid={gid}"
-        self.browser.navigate_to(direct_url)
-        time.sleep(0.5)
+        building_name_lower = building_name.lower().replace(' ', '')
 
-        # Check if we're on the building page and can build
-        build_btn = self.browser.find_element_fast(By.CSS_SELECTOR,
-            'button.build, button.green, input.build, input[type="submit"].green, .contractLink button, .contractBuilding button')
-        if build_btn:
-            btn_class = build_btn.get_attribute('class') or ''
-            btn_disabled = build_btn.get_attribute('disabled')
-            if 'disabled' not in btn_class and not btn_disabled:
-                try:
-                    build_btn.click()
-                    print(f"  ✓ Started construction: {building_name} in slot #{slot_id}")
-                    time.sleep(0.5)
-                    return True
-                except:
-                    pass
-
-        # Method 2: Look for "Construct" or build contract on the page
-        contract_selectors = [
-            '.contractLink a',
-            '.contractBuilding a',
-            'a.build',
-            '.green.build',
-            'button.textButtonV1.green',
-            'form button[type="submit"]',
-        ]
-        for sel in contract_selectors:
-            btn = self.browser.find_element_fast(By.CSS_SELECTOR, sel)
-            if btn:
-                try:
-                    btn_class = btn.get_attribute('class') or ''
-                    if 'disabled' not in btn_class:
-                        btn.click()
-                        print(f"  ✓ Started construction: {building_name} in slot #{slot_id}")
-                        time.sleep(0.5)
-                        return True
-                except:
-                    continue
-
-        # Method 3: Navigate to construction list and click through tabs
+        # Method 1: Navigate to empty slot first
         self.browser.navigate_to(f"{config.base_url}/build.php?id={slot_id}")
-        time.sleep(0.5)
+        time.sleep(0.3)
 
-        # Building categories in Travian - try clicking each tab
-        # Categories: Infrastructure, Military, Resources
-        category_selectors = [
-            # Tab containers
-            '.tabContainer a',
-            '.tabContainer button',
-            '.tabs a',
-            '.tabs button',
-            '.contentNavi a',
-            '.contentNavi button',
-            # Filter buttons
-            '.buildingFilter a',
-            '.buildingFilter button',
-            '.filter a',
-            '.filter button',
-            # Navigation
-            'nav a',
-            '.buildingCategories a',
-            '.buildingList .header a',
-            # Category divs that might be clickable
-            '.category',
-            '.infrastructureBuildings',
-            '.militaryBuildings',
-            '.resourceBuildings',
-        ]
-
-        # First try without clicking tabs
-        if self._try_find_and_build(gid, building_name, slot_id):
-            return True
-
-        # Try clicking each possible tab/category
-        for cat_sel in category_selectors:
+        # Method 2: Find h2 with building name, then click sibling "Build" button
+        # Structure: <div class="buildingWrapper"><h2>Barracks</h2>...<button>Build the building</button></div>
+        h2_elements = self.browser.find_elements(By.CSS_SELECTOR, 'h2')
+        for h2 in h2_elements:
             try:
-                tabs = self.browser.find_elements(By.CSS_SELECTOR, cat_sel)
-                for tab in tabs:
-                    try:
-                        if tab.is_displayed():
-                            # Click the tab
-                            tab.click()
-                            time.sleep(0.3)
+                h2_text = h2.text.strip().lower().replace(' ', '') if h2.text else ''
+                # Exact match (normalized)
+                if h2_text == building_name_lower:
+                    # Found the building! Now find the build button in the same container
+                    parent = h2.find_element(By.XPATH, './..')  # Get parent element
 
-                            # Try to find and build
-                            if self._try_find_and_build(gid, building_name, slot_id):
-                                return True
+                    # Try to find build button in parent or nearby
+                    build_btn = None
+                    try:
+                        build_btn = parent.find_element(By.CSS_SELECTOR, 'button.green, button.build, .contractLink button')
                     except:
-                        continue
+                        pass
+
+                    if not build_btn:
+                        # Try grandparent
+                        try:
+                            grandparent = parent.find_element(By.XPATH, './..')
+                            build_btn = grandparent.find_element(By.CSS_SELECTOR, 'button.green, button.build, .contractLink button')
+                        except:
+                            pass
+
+                    if build_btn:
+                        btn_class = build_btn.get_attribute('class') or ''
+                        if 'disabled' not in btn_class:
+                            build_btn.click()
+                            print(f"  ✓ Started construction: {building_name} in slot #{slot_id}")
+                            return True
             except:
                 continue
 
-        # Method 4: Search page for building name and click
-        try:
-            page_source = self.browser.get_page_source().lower()
-            if building_name.lower() in page_source:
-                # Building name is on the page, try to find clickable element
-                all_clickable = self.browser.find_elements(By.CSS_SELECTOR,
-                    'a, button, div[onclick], span[onclick], .buildingWrapper, .building')
-                for elem in all_clickable:
+        # Method 3: Try direct URL with GID
+        direct_url = f"{config.base_url}/build.php?id={slot_id}&gid={gid}"
+        self.browser.navigate_to(direct_url)
+        time.sleep(0.3)
+
+        # Look for build button
+        build_selectors = [
+            'button.green:not(.disabled)',
+            'button.build:not(.disabled)',
+            '.contractLink button',
+            'form button.green',
+        ]
+
+        for btn_sel in build_selectors:
+            build_btn = self.browser.find_element_fast(By.CSS_SELECTOR, btn_sel)
+            if build_btn:
+                btn_class = build_btn.get_attribute('class') or ''
+                if 'disabled' not in btn_class:
                     try:
-                        text = elem.text.strip().lower() if elem.text else ''
-                        if building_name.lower() in text:
-                            elem.click()
-                            time.sleep(0.3)
-                            # Now look for build button
-                            build_btn = self.browser.find_element_fast(By.CSS_SELECTOR,
-                                'button.build, button.green, input.build')
-                            if build_btn:
-                                build_btn.click()
-                                print(f"  ✓ Started construction: {building_name} in slot #{slot_id}")
-                                return True
+                        build_btn.click()
+                        print(f"  ✓ Started construction: {building_name} in slot #{slot_id}")
+                        return True
                     except:
-                        continue
-        except:
-            pass
+                        pass
 
         # Debug: dump available buildings on the page
         self._debug_construction_page(building_name, gid)
@@ -903,22 +1027,56 @@ class BuildingManager:
     def _debug_construction_page(self, building_name: str, gid: int):
         """Debug helper to show what buildings are available."""
         print(f"  DEBUG: Looking for {building_name} (GID {gid})")
+        print(f"  DEBUG: Current URL: {self.browser.current_url}")
 
         # Find all links with gid
         all_gid_links = self.browser.find_elements(By.CSS_SELECTOR, 'a[href*="gid="]')
         if all_gid_links:
-            print(f"  DEBUG: Found {len(all_gid_links)} GID links on page:")
-            for link in all_gid_links[:10]:  # Show first 10
+            print(f"  DEBUG: Found {len(all_gid_links)} building links:")
+            for link in all_gid_links[:15]:
                 try:
                     href = link.get_attribute('href') or ''
                     text = link.text.strip()[:30] if link.text else ''
+                    gid_val = href.split('gid=')[-1].split('&')[0] if 'gid=' in href else '?'
                     if text:
-                        print(f"    - {text}: {href.split('gid=')[-1].split('&')[0] if 'gid=' in href else '?'}")
+                        print(f"    - '{text}' (GID {gid_val})")
                 except:
                     pass
 
-        # Show current URL
-        print(f"  DEBUG: Current URL: {self.browser.current_url}")
+        # Find h2 elements (building names are in h2)
+        h2_elements = self.browser.find_elements(By.CSS_SELECTOR, 'h2, h2 a')
+        if h2_elements:
+            print(f"  DEBUG: Found {len(h2_elements)} h2 elements:")
+            for elem in h2_elements[:15]:
+                try:
+                    text = elem.text.strip()[:40] if elem.text else '[no text]'
+                    href = elem.get_attribute('href') or ''
+                    if text:
+                        print(f"    - '{text}' {href[-30:] if href else ''}")
+                except:
+                    pass
+
+        # Find clickable elements with building-related classes
+        building_elements = self.browser.find_elements(By.CSS_SELECTOR, '.buildingWrapper, .contractLink, .building, .newBuilding')
+        if building_elements:
+            print(f"  DEBUG: Found {len(building_elements)} building elements:")
+            for elem in building_elements[:10]:
+                try:
+                    text = elem.text.strip()[:40] if elem.text else '[no text]'
+                    print(f"    - '{text}'")
+                except:
+                    pass
+
+        # Show tabs/categories if any
+        tabs = self.browser.find_elements(By.CSS_SELECTOR, '.tabContainer a, .tabs a, .contentNavi a, nav a')
+        if tabs:
+            print(f"  DEBUG: Found {len(tabs)} category tabs:")
+            for i, tab in enumerate(tabs[:5]):
+                try:
+                    text = tab.text.strip()[:20] if tab.text else f'[tab {i}]'
+                    print(f"    - Tab {i}: '{text}'")
+                except:
+                    pass
 
     def _try_find_and_build(self, gid: int, building_name: str, slot_id: int) -> bool:
         """Try to find a building by GID on current page and click build."""
@@ -979,6 +1137,86 @@ class BuildingManager:
                 names.add(bname)
         return names
 
+    def _scan_village_buildings(self) -> Dict[int, Dict]:
+        """
+        Scan all village building slots (19-40) once and cache the results.
+        Returns dict: slot_id -> {name, level, is_empty}
+        """
+        print("🔍 Scanning village buildings once...")
+        cache = {}
+        for slot_id in range(19, 41):
+            name, level = self._get_field_level(slot_id)
+            is_empty = name in ['Empty', 'Unknown', f'Field #{slot_id}'] or 'Construct' in name
+            cache[slot_id] = {'name': name, 'level': level, 'is_empty': is_empty}
+            if not is_empty:
+                print(f"  #{slot_id}: {name} L{level}")
+            else:
+                print(f"  #{slot_id}: (empty)")
+        return cache
+
+    def _find_slot_by_name_cached(self, name: str, cache: Dict[int, Dict]) -> Optional[int]:
+        """Find the slot ID of an existing building by name using cache (fuzzy match)."""
+        # Remove spaces and lowercase for comparison
+        name_normalized = name.lower().replace(' ', '').replace('-', '')
+        for slot_id, info in cache.items():
+            if not info['is_empty']:
+                info_normalized = info['name'].lower().replace(' ', '').replace('-', '')
+                # Check if names match (fuzzy)
+                if name_normalized in info_normalized or info_normalized in name_normalized:
+                    return slot_id
+        return None
+
+    def _find_empty_slot_cached(self, cache: Dict[int, Dict]) -> Optional[int]:
+        """Find the first empty building slot using cache."""
+        for slot_id in range(19, 41):
+            if cache[slot_id]['is_empty']:
+                return slot_id
+        return None
+
+    def _get_existing_names_cached(self, cache: Dict[int, Dict]) -> set:
+        """Get set of building names currently in the village using cache (normalized)."""
+        names = set()
+        for slot_id, info in cache.items():
+            if not info['is_empty']:
+                # Add both original and normalized names
+                names.add(info['name'])
+                names.add(info['name'].lower().replace(' ', '').replace('-', ''))
+        return names
+
+    def _building_exists(self, name: str, cache: Dict[int, Dict]) -> bool:
+        """Check if a building exists (fuzzy match)."""
+        return self._find_slot_by_name_cached(name, cache) is not None
+
+    def _check_prerequisites_cached(self, building_name: str, cache: Dict[int, Dict]) -> tuple:
+        """
+        Check if all prerequisites for a building are met using cache.
+        Returns (all_met: bool, missing: list of (name, required_level, current_level))
+        """
+        prereqs = self.BUILDING_PREREQUISITES.get(building_name, [])
+        if not prereqs:
+            return True, []
+
+        missing = []
+        for prereq_name, prereq_level in prereqs:
+            slot = self._find_slot_by_name_cached(prereq_name, cache)
+            if not slot:
+                missing.append((prereq_name, prereq_level, 0))
+            else:
+                current_level = cache[slot]['level']
+                if current_level < prereq_level:
+                    missing.append((prereq_name, prereq_level, current_level))
+
+        return len(missing) == 0, missing
+
+    def _update_cache(self, slot_id: int, cache: Dict[int, Dict], force_not_empty: bool = False):
+        """Update a single slot in the cache after building/upgrading."""
+        name, level = self._get_field_level(slot_id)
+        is_empty = name in ['Empty', 'Unknown', f'Field #{slot_id}'] or 'Construct' in name
+        # If we just built something there, force it to not be empty
+        if force_not_empty:
+            is_empty = False
+        cache[slot_id] = {'name': name, 'level': level, 'is_empty': is_empty}
+
     def smart_build_order(self, stop_callback) -> int:
         """
         Smart build order with proper prerequisites:
@@ -991,12 +1229,21 @@ class BuildingManager:
         """
         total = 0
 
+        # ---- SCAN ONCE: Cache all village building slots ----
+        print(f"\n{'='*50}")
+        print(f"INITIAL SCAN: Caching village buildings")
+        print(f"{'='*50}")
+        village_cache = self._scan_village_buildings()
+
+        if stop_callback():
+            return total
+
         # ---- Phase 1: Main Building to level 20 ----
         print(f"\n{'='*50}")
         print(f"PHASE 1: Upgrade Main Building to level 20")
         print(f"{'='*50}")
 
-        mb_slot = self._find_building_slot_by_name('Main Building')
+        mb_slot = self._find_slot_by_name_cached('Main Building', village_cache)
         if mb_slot:
             while not stop_callback():
                 name, level = self._get_field_level(mb_slot)
@@ -1019,11 +1266,8 @@ class BuildingManager:
                             upgraded_resource = True
                             break
                     if not upgraded_resource:
-                        print(f"  Waiting (3s)...")
-                        for _ in range(3):
-                            if stop_callback():
-                                return total
-                            time.sleep(1)
+                        # No upgrades available, move on
+                        break
         else:
             print(f"  ✗ Main Building not found!")
 
@@ -1055,11 +1299,8 @@ class BuildingManager:
                 break
 
             if not upgraded:
-                print(f"  Waiting (3s)...")
-                for _ in range(3):
-                    if stop_callback():
-                        return total
-                    time.sleep(1)
+                # No upgrades available, move on
+                break
 
         if stop_callback():
             return total
@@ -1070,7 +1311,7 @@ class BuildingManager:
         print(f"{'='*50}")
 
         essential_buildings = ['Warehouse', 'Granary', 'Cranny', 'Embassy']
-        existing = self._get_existing_building_names()
+        existing = self._get_existing_names_cached(village_cache)
 
         for building_name in essential_buildings:
             if stop_callback():
@@ -1081,7 +1322,7 @@ class BuildingManager:
                 print(f"  ✓ {building_name} already exists")
                 continue
 
-            empty_slot = self._find_empty_slot()
+            empty_slot = self._find_empty_slot_cached(village_cache)
             if not empty_slot:
                 print(f"  ✗ No empty slots for {building_name}")
                 continue
@@ -1090,6 +1331,8 @@ class BuildingManager:
             if self._build_new_building(empty_slot, building_name):
                 existing.add(building_name)
                 total += 1
+                # Update cache - mark slot as NOT empty since we just built there
+                self._update_cache(empty_slot, village_cache, force_not_empty=True)
                 time.sleep(0.5)
 
         if stop_callback():
@@ -1100,92 +1343,104 @@ class BuildingManager:
         print(f"PHASE 4: Build buildings (respecting prerequisites)")
         print(f"{'='*50}")
 
-        # Refresh existing buildings
-        existing = self._get_existing_building_names()
-
-        for building_name, allow_dup in self.AUTO_BUILD_ORDER:
+        # Keep looping until all buildings are built or no progress
+        max_rounds = 20  # Prevent infinite loops
+        for round_num in range(max_rounds):
             if stop_callback():
                 return total
 
-            # Skip if already exists (unless duplicates allowed)
-            if not allow_dup and building_name in existing:
-                continue
+            # Rescan village to get current state
+            print(f"\n  --- Round {round_num + 1} ---")
+            village_cache = self._scan_village_buildings()
+            existing = self._get_existing_names_cached(village_cache)
 
-            # Skip essential buildings (already handled)
-            if building_name in ['Warehouse', 'Granary', 'Cranny', 'Embassy']:
-                continue
+            built_something = False
+            all_built = True
 
-            # Check prerequisites
-            prereqs_met, missing = self._check_prerequisites(building_name)
+            for building_name, allow_dup in self.AUTO_BUILD_ORDER:
+                if stop_callback():
+                    return total
 
-            if not prereqs_met:
-                print(f"\n  📋 {building_name} needs prerequisites:")
-                for prereq_name, req_level, cur_level in missing:
-                    print(f"     - {prereq_name} L{req_level} (currently L{cur_level})")
-
-                # Try to fulfill prerequisites
-                all_fulfilled = True
-                for prereq_name, req_level, cur_level in missing:
-                    if stop_callback():
-                        return total
-
-                    # Check if prereq building exists
-                    prereq_slot = self._find_building_slot_by_name(prereq_name)
-
-                    if not prereq_slot:
-                        # Need to build the prerequisite first
-                        print(f"     Building {prereq_name} first...")
-                        empty_slot = self._find_empty_slot()
-                        if empty_slot:
-                            if self._build_new_building(empty_slot, prereq_name):
-                                existing.add(prereq_name)
-                                total += 1
-                                time.sleep(0.5)
-                                prereq_slot = self._find_building_slot_by_name(prereq_name)
-                            else:
-                                print(f"     ✗ Could not build {prereq_name}")
-                                all_fulfilled = False
-                                continue
-
-                    # Now upgrade the prereq to required level
-                    if prereq_slot and cur_level < req_level:
-                        print(f"     Upgrading {prereq_name} to L{req_level}...")
-                        while not stop_callback():
-                            _, level = self._get_field_level(prereq_slot)
-                            if level >= req_level:
-                                print(f"     ✓ {prereq_name} at L{level}")
-                                break
-                            if self._try_upgrade(prereq_slot):
-                                print(f"     🔧 {prereq_name} L{level} -> L{level+1}")
-                                total += 1
-                            else:
-                                # Try upgrading something else while waiting
-                                for field_id in range(1, 19):
-                                    fname, flevel = self._get_field_level(field_id)
-                                    if flevel < 20 and self._try_upgrade(field_id):
-                                        print(f"     🔨 {fname} L{flevel} -> L{flevel+1}")
-                                        total += 1
-                                        break
-                                else:
-                                    time.sleep(2)
-
-                if not all_fulfilled:
-                    print(f"  ✗ Skipping {building_name} (prerequisites not met)")
+                # Skip essential buildings (already handled in Phase 3)
+                if building_name in ['Warehouse', 'Granary', 'Cranny', 'Embassy']:
                     continue
 
-            # Now try to build the building
-            empty_slot = self._find_empty_slot()
-            if not empty_slot:
-                print(f"  ✗ No empty slots")
+                # Skip if already exists (unless duplicates allowed)
+                if not allow_dup and self._building_exists(building_name, village_cache):
+                    continue
+
+                all_built = False  # There's still something to build
+
+                # Check prerequisites
+                prereqs_met, missing = self._check_prerequisites_cached(building_name, village_cache)
+
+                if not prereqs_met:
+                    # Check what's missing
+                    for prereq_name, req_level, cur_level in missing:
+                        if stop_callback():
+                            return total
+
+                        prereq_slot = self._find_slot_by_name_cached(prereq_name, village_cache)
+
+                        if not prereq_slot:
+                            # Prereq building doesn't exist - build it
+                            print(f"  📋 Building {prereq_name} (needed for {building_name})...")
+                            empty_slot = self._find_empty_slot_cached(village_cache)
+                            if empty_slot:
+                                if self._build_new_building(empty_slot, prereq_name):
+                                    total += 1
+                                    built_something = True
+                                    self._update_cache(empty_slot, village_cache, force_not_empty=True)
+                            break  # Move to next round after building prereq
+
+                        elif cur_level < req_level:
+                            # Prereq exists but needs upgrading
+                            print(f"  📋 Upgrading {prereq_name} L{cur_level}->L{req_level} (needed for {building_name})...")
+                            if self._try_upgrade(prereq_slot):
+                                print(f"     🔧 {prereq_name} L{cur_level} -> L{cur_level+1}")
+                                total += 1
+                                built_something = True
+                            break  # Move to next round after upgrading
+
+                    continue  # Skip this building, prereqs not met
+
+                # Prerequisites are met - build the building
+                empty_slot = self._find_empty_slot_cached(village_cache)
+                if not empty_slot:
+                    print(f"  ✗ No empty slots available")
+                    break
+
+                print(f"  🏗️ Building {building_name}...")
+                if self._build_new_building(empty_slot, building_name):
+                    existing.add(building_name)
+                    total += 1
+                    built_something = True
+                    self._update_cache(empty_slot, village_cache, force_not_empty=True)
+                else:
+                    print(f"     ✗ Could not build {building_name}")
+
+            # Check if we're done or stuck
+            if all_built:
+                print(f"\n  ✓ All buildings constructed!")
                 break
 
-            print(f"  Building {building_name}...")
-            if self._build_new_building(empty_slot, building_name):
-                existing.add(building_name)
-                total += 1
-                time.sleep(0.5)
-            else:
-                print(f"  ✗ Could not build {building_name}")
+            if not built_something:
+                # Try upgrading resources while waiting for construction
+                upgraded = False
+                for field_id in range(1, 19):
+                    if stop_callback():
+                        return total
+                    fname, flevel = self._get_field_level(field_id)
+                    if flevel < self.target_level and self._try_upgrade(field_id):
+                        print(f"  🔨 {fname} L{flevel} -> L{flevel+1} (while waiting)")
+                        total += 1
+                        upgraded = True
+                        break
+
+                if not upgraded:
+                    print(f"  ⏳ Waiting for construction to complete...")
+                    # Nothing to do, constructions in progress
+                    break
 
         if stop_callback():
             return total
@@ -1194,6 +1449,10 @@ class BuildingManager:
         print(f"\n{'='*50}")
         print(f"PHASE 5: Upgrade everything to level 20")
         print(f"{'='*50}")
+
+        # Get list of non-empty building slots from cache (avoid checking empty slots)
+        building_slots = [slot_id for slot_id, info in village_cache.items() if not info['is_empty']]
+        print(f"  Tracking {len(building_slots)} buildings in village")
 
         while not stop_callback():
             all_done = True
@@ -1211,13 +1470,11 @@ class BuildingManager:
                         total += 1
                         upgraded = True
 
-            # Village buildings
-            for building_id in range(19, 41):
+            # Village buildings - only check slots we know have buildings
+            for building_id in building_slots:
                 if stop_callback():
                     return total
                 name, level = self._get_field_level(building_id)
-                if name in ['Empty', 'Unknown'] or 'Construct' in name:
-                    continue
                 if level < 20:
                     all_done = False
                     if self._try_upgrade(building_id):
@@ -1230,10 +1487,7 @@ class BuildingManager:
                 break
 
             if not upgraded:
-                print(f"  Waiting (5s)...")
-                for _ in range(5):
-                    if stop_callback():
-                        return total
-                    time.sleep(1)
+                # No upgrades available - all done or waiting for resources
+                break
 
         return total
